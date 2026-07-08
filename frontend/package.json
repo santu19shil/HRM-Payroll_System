@@ -1,0 +1,30 @@
+{
+  "name": "hr-payroll-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host",
+    "build": "vite build",
+    "preview": "vite preview --host"
+  },
+  "dependencies": {
+    "@tailwindcss/postcss": "^4.3.2",
+    "autoprefixer": "^10.5.2",
+    "axios": "^1.18.1",
+    "chart.js": "^4.5.1",
+    "framer-motion": "^12.42.2",
+    "lucide-react": "^1.23.0",
+    "postcss": "^8.5.16",
+    "react": "^18.3.1",
+    "react-chartjs-2": "^5.3.1",
+    "react-dom": "^18.3.1",
+    "react-hot-toast": "^2.6.0",
+    "react-router-dom": "^6.26.2",
+    "tailwindcss": "^4.3.2"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.1",
+    "vite": "^8.1.3"
+  }
+}
