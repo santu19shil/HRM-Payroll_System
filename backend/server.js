@@ -7,6 +7,25 @@ const cookieParser = require('cookie-parser');
 const path = require('path');
 const fs = require('fs');
 
+const allowedOrigins = new Set([
+  process.env.FRONTEND_URL,
+  'http://localhost:5173',
+  'http://localhost:4173'
+].filter(Boolean));
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.has(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+};
+
 // Import routes
 const authRoutes = require('./routes/authRoutes');
 const employeeRoutes = require('./routes/employeeRoutes');
@@ -18,7 +37,9 @@ const payrollRoutes = require('./routes/payrollRoutes');
 const holidayRoutes = require('./routes/holidayRoutes');
 const documentRoutes = require('./routes/documentRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
+const noticeRoutes = require('./routes/noticeRoutes');
 const settingsRoutes = require('./routes/settingsRoutes');
+const runMigrations = require('./database/migrate');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -33,13 +54,7 @@ app.use(helmet({
   contentSecurityPolicy: false
 }));
 
-// CORS
-app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
+app.use(cors(corsOptions));
 
 // Body parsing
 app.use(express.json({ limit: '10mb' }));
@@ -50,7 +65,7 @@ app.use(cookieParser());
 
 // Rate limiting
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
+  windowMs: 15 * 60 * 1000,
   max: 200,
   message: {
     success: false,
@@ -96,13 +111,16 @@ app.use('/api/auth', authRoutes);
 app.use('/api/employees', employeeRoutes);
 app.use('/api/departments', departmentRoutes);
 app.use('/api/designations', designationRoutes);
+
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/leaves', leaveRoutes);
 app.use('/api/payroll', payrollRoutes);
 app.use('/api/holidays', holidayRoutes);
 app.use('/api/documents', documentRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/notices', noticeRoutes);
 app.use('/api/settings', settingsRoutes);
+
 
 // ============================================
 // ERROR HANDLING
@@ -146,6 +164,9 @@ app.use((err, req, res, next) => {
 // ============================================
 // START SERVER
 // ============================================
+
+// Run database migrations at startup (idempotent, non-fatal)
+runMigrations().catch((err) => console.error('Startup migration warning:', err.message));
 
 // Ensure upload directories exist
 const uploadDirs = ['uploads/profiles', 'uploads/documents', 'uploads/temp'];

@@ -1,12 +1,9 @@
 # TODO
 
-## Payroll admin employee details + slips
+## Completed
+- Implemented view-only HR/Admin employee profile popup window UI.
 
-- [x] Add backend endpoint to fetch decrypted employee credentials + payroll slip totals for month/year
-- [x] Add new frontend page: AdminPayrollSlipsPage with month/year filters, clickable employee list, details panel, PDF download
-- [x] Wire frontend route `/payroll-admin` in App.jsx
-- [x] Add “Payroll” nav link when logged in
-- [ ] (Optional) Minor CSS tweaks for details panel / clickable name
-- [x] Run manual verification: run payroll -> open payroll-admin -> select month/year -> click employee -> verify credentials + slip totals + PDF download
+## Pending (cleanup)
+- [x] Removed unused one-off backend scripts: pw_tmp.js, q_tmp.js, seed_admin.js, seed_roles.js.
 
 

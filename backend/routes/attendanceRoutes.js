@@ -3,7 +3,7 @@ const router = express.Router();
 const { authenticate, authorizeHR } = require('../middleware/authMiddleware');
 const {
   getOfficeLocations, checkIn, checkOut, getTodayAttendance,
-  getAttendanceHistory, getAttendanceSummary, getAllAttendance, correctAttendance
+  getAttendanceHistory, getAttendanceSummary, getAdminMonthlySummary, getAllAttendance, correctAttendance
 } = require('../controllers/attendanceController');
 
 // Employee self-service
@@ -15,6 +15,7 @@ router.get('/history', authenticate, getAttendanceHistory);
 router.get('/summary', authenticate, getAttendanceSummary);
 
 // HR routes
+router.get('/admin-summary', authenticate, authorizeHR, getAdminMonthlySummary);
 router.get('/', authenticate, authorizeHR, getAllAttendance);
 router.put('/:id/correct', authenticate, authorizeHR, correctAttendance);
 

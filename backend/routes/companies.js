@@ -12,5 +12,5 @@ router.get('/me', requireAuth, async (req, res) => {
   res.json({ company: rows[0] || null });
 });
 
-module.exports = { router };
+module.exports = router;
 

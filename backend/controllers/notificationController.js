@@ -2,6 +2,61 @@ const pool = require('../config/database');
 const { success, badRequest, error } = require('../utils/response');
 const { generateId } = require('../utils/helpers');
 
+/**
+ * Get counts for sidebar badges.
+ * Returns unread notification counts by category for the current user
+ * (works for both admin and employee).
+ * GET /api/notifications/counts
+ */
+const getCounts = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+
+    const [leaves] = await pool.query(
+      'SELECT COUNT(*) as count FROM notifications WHERE user_id = ? AND category = ? AND is_read = 0',
+      [userId, 'LEAVE']
+    );
+    const [docs] = await pool.query(
+      'SELECT COUNT(*) as count FROM notifications WHERE user_id = ? AND category = ? AND is_read = 0',
+      [userId, 'DOCUMENT']
+    );
+    const [notifs] = await pool.query(
+      'SELECT COUNT(*) as count FROM notifications WHERE user_id = ? AND is_read = 0',
+      [userId]
+    );
+
+    return success(res, {
+      leaves: leaves[0].count,
+      documents: docs[0].count,
+      notifications: notifs[0].count
+    });
+  } catch (err) {
+    console.error('Get counts error:', err);
+    return error(res, 'Failed to fetch counts');
+  }
+};
+
+/**
+ * Mark all notifications of a category as read (clears sidebar badge on view)
+ * PUT /api/notifications/read-category  { category }
+ */
+const markCategoryRead = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { category } = req.body;
+    if (!category) return badRequest(res, 'Category is required');
+
+    await pool.query(
+      'UPDATE notifications SET is_read = 1, read_at = NOW() WHERE user_id = ? AND category = ? AND is_read = 0',
+      [userId, category]
+    );
+    return success(res, null, 'Notifications marked as read');
+  } catch (err) {
+    console.error('Mark category read error:', err);
+    return error(res, 'Failed to mark as read');
+  }
+};
+
 const getMyNotifications = async (req, res) => {
   try {
     const userId = req.user.userId;
@@ -16,7 +71,7 @@ const getMyNotifications = async (req, res) => {
 
     const [notifications] = await pool.query(
       'SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?',
-      [userId, String(limit), String(offset)]
+      [userId, limit, offset]
     );
 
     const [unreadCount] = await pool.query(
@@ -71,4 +126,4 @@ const markAllAsRead = async (req, res) => {
   }
 };
 
-module.exports = { getMyNotifications, markAsRead, markAllAsRead };
+module.exports = { getMyNotifications, getCounts, markCategoryRead, markAsRead, markAllAsRead };

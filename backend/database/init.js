@@ -17,13 +17,32 @@ async function initializeDatabase() {
 
     console.log('Connected to MySQL server');
 
-    // Read and execute schema
+    // Read and execute schema.
+    // Make schema apply safer for repeated runs (CRUD-friendly workflow):
+    // - The main schema uses CREATE TABLE IF NOT EXISTS for idempotency.
+    // - But schema.sql also contains ALTER TABLE ... ADD CONSTRAINT without IF NOT EXISTS.
+    //   Remove duplicate FK constraint additions by skipping those ALTER statements.
     const schemaPath = path.join(__dirname, 'schema.sql');
     const schema = fs.readFileSync(schemaPath, 'utf8');
 
-    await connection.query(schema);
-    console.log('Database schema created successfully');
-    console.log('Seed data inserted successfully');
+    const schemaStatements = schema
+      .split(/;\s*\n/g)
+      .map(s => s.trim())
+      .filter(Boolean)
+      .filter(stmt => {
+        // Skip FK constraint additions that don't have an IF NOT EXISTS guard.
+        // This prevents errors like: Duplicate foreign key constraint name 'fk_dept_head'
+        return !/^ALTER TABLE\s+departments\s+ADD\s+CONSTRAINT\s+fk_dept_head/i.test(stmt);
+      })
+      .map(stmt => (stmt.endsWith(';') ? stmt : stmt + ';'));
+
+    for (const statement of schemaStatements) {
+      await connection.query(statement);
+    }
+
+    console.log('Database schema applied successfully');
+    console.log('Seed data inserted successfully (ON DUPLICATE KEY handles repeats)');
+
 
     // Update admin password with proper bcrypt hash
     const bcrypt = require('bcryptjs');

@@ -4,7 +4,7 @@ const fs = require('fs');
 const { generateId } = require('../utils/helpers');
 
 // Ensure upload directories exist
-const uploadDirs = ['uploads/profiles', 'uploads/documents', 'uploads/temp'];
+const uploadDirs = ['uploads/profiles', 'uploads/documents', 'uploads/temp', 'uploads/notices'];
 uploadDirs.forEach(dir => {
   const fullPath = path.join(__dirname, '..', dir);
   if (!fs.existsSync(fullPath)) {
@@ -17,8 +17,10 @@ const storage = multer.diskStorage({
     let uploadPath = 'uploads/temp';
     if (file.fieldname === 'profile_picture' || file.fieldname === 'profile') {
       uploadPath = 'uploads/profiles';
-    } else if (file.fieldname === 'document' || file.fieldname === 'documents') {
+    } else     if (file.fieldname === 'document' || file.fieldname === 'documents') {
       uploadPath = 'uploads/documents';
+    } else if (file.fieldname === 'attachment') {
+      uploadPath = 'uploads/notices';
     }
     cb(null, path.join(__dirname, '..', uploadPath));
   },

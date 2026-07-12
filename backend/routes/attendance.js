@@ -10,25 +10,26 @@ router.get('/', async (req, res) => {
   const companyId = req.user.companyId;
   const isEmployee = req.user.role === 'EMPLOYEE';
   
-  let query = 'SELECT * FROM attendance WHERE companyId = ?';
+  let query = `SELECT a.id, a.companyId, a.employeeId, e.name as employee_name, e.employee_id as emp_id,
+    a.date, a.checkIn as check_in_time, a.checkOut as check_out_time, a.breakTimeMinutes, a.status, a.workHours as working_hours
+    FROM attendance a
+    JOIN employees e ON a.employeeId = e.id
+    WHERE a.companyId = ?`;
   let params = [companyId];
 
-  // If Employee, only show their attendance. For simplicity we look up employeeId by email or name.
-  // In a real system, req.user should contain employeeId if role=EMPLOYEE.
-  // For now, let's assume if EMPLOYEE, we fetch based on user name matching employee name.
   if (isEmployee) {
     const empRows = await all('SELECT id FROM employees WHERE companyId = ? AND name = ?', [companyId, req.user.name]);
     if (empRows.length > 0) {
-      query += ' AND employeeId = ?';
+      query += ' AND a.employeeId = ?';
       params.push(empRows[0].id);
     } else {
-      return res.json({ attendance: [] });
+      return res.json({ success: true, data: [] });
     }
   }
 
-  query += ' ORDER BY date DESC';
+  query += ' ORDER BY a.date DESC';
   const rows = await all(query, params);
-  res.json({ attendance: rows });
+  res.json({ success: true, data: rows });
 });
 
 router.post('/check-in', async (req, res) => {
@@ -62,7 +63,7 @@ router.post('/check-in', async (req, res) => {
     [att.id, att.companyId, att.employeeId, att.date, att.checkIn, att.status]
   );
 
-  res.status(201).json({ attendance: att });
+  res.status(201).json({ success: true, data: att });
 });
 
 router.post('/check-out', async (req, res) => {
@@ -83,7 +84,7 @@ router.post('/check-out', async (req, res) => {
     [time, 8.5, existing[0].id]
   );
 
-  res.json({ success: true, checkOut: time });
+  res.json({ success: true, data: { checkOut: time } });
 });
 
-module.exports = { router };
+module.exports = router;

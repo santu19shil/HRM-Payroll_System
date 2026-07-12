@@ -9,7 +9,7 @@ router.use(requireAuth);
 router.get('/', async (req, res) => {
   const companyId = req.user.companyId;
   const rows = await all('SELECT * FROM holidays WHERE companyId = ? ORDER BY date ASC', [companyId]);
-  res.json({ holidays: rows });
+  res.json({ success: true, data: rows });
 });
 
 router.post('/', requireRole(['SUPER_ADMIN', 'HR']), async (req, res) => {
@@ -31,7 +31,7 @@ router.post('/', requireRole(['SUPER_ADMIN', 'HR']), async (req, res) => {
     [holiday.id, holiday.companyId, holiday.name, holiday.date, holiday.type, holiday.createdAt]
   );
 
-  res.status(201).json({ holiday });
+  res.status(201).json({ success: true, data: holiday });
 });
 
 router.delete('/:id', requireRole(['SUPER_ADMIN', 'HR']), async (req, res) => {
@@ -41,4 +41,4 @@ router.delete('/:id', requireRole(['SUPER_ADMIN', 'HR']), async (req, res) => {
   res.json({ success: true });
 });
 
-module.exports = { router };
+module.exports = router;

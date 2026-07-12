@@ -235,6 +235,7 @@ CREATE TABLE IF NOT EXISTS salary_components (
   name VARCHAR(255) NOT NULL,
   code VARCHAR(50) NOT NULL UNIQUE,
   type ENUM('EARNING', 'DEDUCTION') NOT NULL,
+  category ENUM('EMPLOYEE', 'EMPLOYER') NOT NULL DEFAULT 'EMPLOYEE',
   description TEXT,
   is_taxable TINYINT(1) NOT NULL DEFAULT 1,
   is_default TINYINT(1) NOT NULL DEFAULT 0,
@@ -254,6 +255,9 @@ CREATE TABLE IF NOT EXISTS salary_structures (
   total_earnings DECIMAL(12, 2) NOT NULL DEFAULT 0,
   total_deductions DECIMAL(12, 2) NOT NULL DEFAULT 0,
   net_salary DECIMAL(12, 2) NOT NULL DEFAULT 0,
+  bonuses_monthly DECIMAL(12, 2) NOT NULL DEFAULT 0,
+  deductions_monthly DECIMAL(12, 2) NOT NULL DEFAULT 0,
+  tax_percentage DECIMAL(5, 2) NOT NULL DEFAULT 0,
   is_active TINYINT(1) NOT NULL DEFAULT 1,
   created_by VARCHAR(36) NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -268,6 +272,8 @@ CREATE TABLE IF NOT EXISTS salary_structure_components (
   salary_structure_id VARCHAR(36) NOT NULL,
   component_id VARCHAR(36) NOT NULL,
   amount DECIMAL(12, 2) NOT NULL DEFAULT 0,
+  calculation_type ENUM('FIXED', 'PERCENTAGE') NOT NULL DEFAULT 'FIXED',
+  calculation_value DECIMAL(10, 2) NOT NULL DEFAULT 0,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (salary_structure_id) REFERENCES salary_structures(id) ON DELETE CASCADE,
   FOREIGN KEY (component_id) REFERENCES salary_components(id)
@@ -283,6 +289,7 @@ CREATE TABLE IF NOT EXISTS payroll_runs (
   total_gross_pay DECIMAL(14, 2) DEFAULT 0,
   total_deductions DECIMAL(14, 2) DEFAULT 0,
   total_net_pay DECIMAL(14, 2) DEFAULT 0,
+  total_employer_contributions DECIMAL(14, 2) DEFAULT 0,
   processed_by VARCHAR(36) NULL,
   processed_at TIMESTAMP NULL,
   approved_by VARCHAR(36) NULL,
@@ -310,6 +317,8 @@ CREATE TABLE IF NOT EXISTS payroll_items (
   lop_days INT DEFAULT 0,
   earnings_breakdown JSON,
   deductions_breakdown JSON,
+  employer_contributions JSON,
+  employer_total DECIMAL(12, 2) NOT NULL DEFAULT 0,
   status ENUM('PENDING', 'PROCESSED', 'PAID') NOT NULL DEFAULT 'PENDING',
   paid_at TIMESTAMP NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -332,6 +341,11 @@ CREATE TABLE IF NOT EXISTS documents (
   file_size INT DEFAULT 0,
   mime_type VARCHAR(100),
   is_verified TINYINT(1) NOT NULL DEFAULT 0,
+  -- New workflow status for Admin moderation
+  -- Pending: uploaded but not yet moderated
+  -- Verified: approved/accepted
+  -- Rejected: rejected by admin/HR
+  status ENUM('Pending','Verified','Rejected') NOT NULL DEFAULT 'Pending',
   verified_by VARCHAR(36) NULL,
   verified_at TIMESTAMP NULL,
   uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -454,24 +468,33 @@ INSERT INTO leave_types (id, name, code, description, days_per_year, is_paid, ca
 ON DUPLICATE KEY UPDATE name = VALUES(name);
 
 -- Insert default salary components (Earnings)
-INSERT INTO salary_components (id, name, code, type, description, is_taxable, is_default, calculation_type, calculation_value) VALUES
-('sc_basic', 'Basic Salary', 'BASIC', 'EARNING', 'Base salary component', 1, 1, 'FIXED', 0),
-('sc_hra', 'House Rent Allowance', 'HRA', 'EARNING', 'Housing allowance', 1, 1, 'PERCENTAGE', 40),
-('sc_da', 'Dearness Allowance', 'DA', 'EARNING', 'Dearness allowance', 1, 1, 'PERCENTAGE', 10),
-('sc_conveyance', 'Conveyance Allowance', 'CONV', 'EARNING', 'Travel allowance', 0, 1, 'FIXED', 1600),
-('sc_medical', 'Medical Allowance', 'MED', 'EARNING', 'Medical expense allowance', 0, 1, 'FIXED', 1250),
-('sc_special', 'Special Allowance', 'SPECIAL', 'EARNING', 'Special allowance', 1, 1, 'FIXED', 0),
-('sc_bonus', 'Performance Bonus', 'BONUS', 'EARNING', 'Performance-based bonus', 1, 0, 'FIXED', 0)
-ON DUPLICATE KEY UPDATE name = VALUES(name);
+INSERT INTO salary_components (id, name, code, type, category, description, is_taxable, is_default, calculation_type, calculation_value) VALUES
+('sc_basic', 'Basic Salary', 'BASIC', 'EARNING', 'EMPLOYEE', 'Base salary component', 1, 1, 'FIXED', 0),
+('sc_hra', 'House Rent Allowance', 'HRA', 'EARNING', 'EMPLOYEE', 'Housing allowance', 1, 1, 'PERCENTAGE', 40),
+('sc_da', 'Dearness Allowance', 'DA', 'EARNING', 'EMPLOYEE', 'Dearness allowance', 1, 1, 'PERCENTAGE', 10),
+('sc_conveyance', 'Conveyance Allowance', 'CONV', 'EARNING', 'EMPLOYEE', 'Travel allowance', 0, 1, 'FIXED', 1600),
+('sc_medical', 'Medical Allowance', 'MED', 'EARNING', 'EMPLOYEE', 'Medical expense allowance', 0, 1, 'FIXED', 1250),
+('sc_special', 'Special Allowance', 'SPECIAL', 'EARNING', 'EMPLOYEE', 'Special allowance', 1, 1, 'FIXED', 0),
+('sc_bonus', 'Bonus / Special Allowance', 'BONUS', 'EARNING', 'EMPLOYEE', 'Performance/bonus pay', 1, 0, 'FIXED', 0),
+('sc_overtime', 'Overtime Pay', 'OT', 'EARNING', 'EMPLOYEE', 'Overtime pay', 1, 0, 'FIXED', 0)
+ON DUPLICATE KEY UPDATE name = VALUES(name), calculation_type = VALUES(calculation_type), calculation_value = VALUES(calculation_value);
 
 -- Insert default salary components (Deductions)
-INSERT INTO salary_components (id, name, code, type, description, is_taxable, is_default, calculation_type, calculation_value) VALUES
-('sc_pf', 'Provident Fund', 'PF', 'DEDUCTION', 'Employee provident fund contribution', 0, 1, 'PERCENTAGE', 12),
-('sc_esi', 'Employee State Insurance', 'ESI', 'DEDUCTION', 'ESI contribution', 0, 1, 'PERCENTAGE', 0.75),
-('sc_professional_tax', 'Professional Tax', 'PT', 'DEDUCTION', 'Professional tax as per state rules', 0, 1, 'FIXED', 200),
-('sc_income_tax', 'Income Tax', 'IT', 'DEDUCTION', 'TDS on salary', 0, 1, 'FIXED', 0),
-('sc_loan', 'Loan Deduction', 'LOAN', 'DEDUCTION', 'Employee loan repayment', 0, 0, 'FIXED', 0)
-ON DUPLICATE KEY UPDATE name = VALUES(name);
+INSERT INTO salary_components (id, name, code, type, category, description, is_taxable, is_default, calculation_type, calculation_value) VALUES
+('sc_pf', 'Provident Fund', 'PF', 'DEDUCTION', 'EMPLOYEE', 'Employee provident fund contribution', 0, 1, 'PERCENTAGE', 12),
+('sc_esi', 'Employee State Insurance', 'ESI', 'DEDUCTION', 'EMPLOYEE', 'ESI contribution', 0, 1, 'PERCENTAGE', 0.75),
+('sc_professional_tax', 'Professional Tax', 'PT', 'DEDUCTION', 'EMPLOYEE', 'Professional tax as per state rules', 0, 1, 'FIXED', 200),
+('sc_income_tax', 'Income Tax (TDS)', 'IT', 'DEDUCTION', 'EMPLOYEE', 'TDS on salary', 0, 1, 'FIXED', 0),
+('sc_loan', 'Loan / Advance Recovery', 'LOAN', 'DEDUCTION', 'EMPLOYEE', 'Employee loan repayment', 0, 0, 'FIXED', 0),
+('sc_other_deduction', 'Other Deductions', 'OTHER', 'DEDUCTION', 'EMPLOYEE', 'Miscellaneous deductions', 0, 0, 'FIXED', 0)
+ON DUPLICATE KEY UPDATE name = VALUES(name), calculation_type = VALUES(calculation_type), calculation_value = VALUES(calculation_value);
+
+-- Insert default salary components (Employer Contributions)
+INSERT INTO salary_components (id, name, code, type, category, description, is_taxable, is_default, calculation_type, calculation_value) VALUES
+('sc_pf_er', 'Provident Fund (Employer)', 'PF_ER', 'EARNING', 'EMPLOYER', 'Employer PF share', 0, 1, 'PERCENTAGE', 13),
+('sc_esi_er', 'ESI (Employer)', 'ESI_ER', 'EARNING', 'EMPLOYER', 'Employer ESI share', 0, 1, 'PERCENTAGE', 3.25),
+('sc_gratuity', 'Gratuity Accrual', 'GRAT', 'EARNING', 'EMPLOYER', 'Gratuity accrual (4.81% of basic)', 0, 1, 'PERCENTAGE', 4.81)
+ON DUPLICATE KEY UPDATE name = VALUES(name), calculation_type = VALUES(calculation_type), calculation_value = VALUES(calculation_value);
 
 -- Insert default settings
 INSERT INTO settings (id, setting_key, setting_value, setting_group, description) VALUES
@@ -487,7 +510,8 @@ INSERT INTO settings (id, setting_key, setting_value, setting_group, description
 ('set_10', 'payroll_cycle', 'Monthly', 'Payroll', 'Payroll processing cycle'),
 ('set_11', 'currency', 'INR', 'Payroll', 'Default currency'),
 ('set_12', 'pf_employer_contribution', '13', 'Payroll', 'Employer PF contribution percentage'),
-('set_13', 'esi_employer_contribution', '3.25', 'Payroll', 'Employer ESI contribution percentage')
+('set_13', 'esi_employer_contribution', '3.25', 'Payroll', 'Employer ESI contribution percentage'),
+('set_14', 'company_logo', '', 'Company', 'Company logo file path')
 ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value);
 
 -- Insert default office location
@@ -498,5 +522,5 @@ ON DUPLICATE KEY UPDATE name = VALUES(name);
 -- Create default Super Admin user (password: Admin@123)
 -- Password hash for 'Admin@123' with bcrypt
 INSERT INTO users (id, employee_id, email, password_hash, role_id, is_temp_password, must_change_password, is_active) VALUES
-('user_admin', 'ADMIN001', 'admin@hrpayroll.com', '$2a$10$8KzQMGx5C5Kc5Q5Y5Q5Y5u5Y5Q5Y5Q5Y5Q5Y5Q5Y5Q5Y5Q5Y5Q5Y', 'role_super_admin', 0, 0, 1)
+('user_admin', 'ADMIN001', 'admin@hrpayroll.com', 'Admin@123', 'role_super_admin', 0, 0, 1)
 ON DUPLICATE KEY UPDATE email = VALUES(email);

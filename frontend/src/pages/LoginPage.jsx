@@ -9,19 +9,15 @@ export default function LoginPage() {
   const [formData, setFormData] = useState({ employeeId: '', email: '', password: '' });
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [loginMode, setLoginMode] = useState('id'); // 'id' or 'email'
+  const [loginMode, setLoginMode] = useState('id');
 
   useEffect(() => {
     if (isAuthenticated && user) {
-      if (user.must_change_password) {
-        navigate('/change-password');
+      const role = user.role_name || user.role || localStorage.getItem('userRole');
+      if (role === 'SUPER_ADMIN' || role === 'HR_ADMIN') {
+        navigate('/admin/dashboard', { replace: true });
       } else {
-        const role = user.role_name || localStorage.getItem('userRole');
-        if (role === 'SUPER_ADMIN' || role === 'HR_ADMIN') {
-          navigate('/admin/dashboard');
-        } else {
-          navigate('/employee/dashboard');
-        }
+        navigate('/employee/dashboard', { replace: true });
       }
     }
   }, [isAuthenticated, user, navigate]);
@@ -41,20 +37,11 @@ export default function LoginPage() {
         email: loginMode === 'email' ? identifier : undefined,
         password: formData.password
       };
-      
-      const userData = await login(credentials);
+
+      await login(credentials);
       toast.success('Login successful!');
-      
-      if (userData.must_change_password) {
-        navigate('/change-password');
-      } else {
-        const role = userData.role;
-        if (role === 'SUPER_ADMIN' || role === 'HR_ADMIN') {
-          navigate('/admin/dashboard');
-        } else {
-          navigate('/employee/dashboard');
-        }
-      }
+
+      // Redirect is handled by useEffect watching isAuthenticated/user
     } catch (err) {
       const msg = err.response?.data?.message || 'Invalid credentials';
       toast.error(msg);
@@ -156,13 +143,12 @@ export default function LoginPage() {
         <div className="auth-divider">or</div>
 
         <div style={{ textAlign: 'center' }}>
-          <Link to="/forgot-password" style={{ color: '#2563eb', fontSize: '14px', textDecoration: 'none' }}>
+          <Link to="/forgot-password" style={{ color: 'var(--primary)', fontSize: '14px', textDecoration: 'none' }}>
             Forgot Password?
           </Link>
         </div>
-
-        
       </div>
     </div>
   );
 }
+

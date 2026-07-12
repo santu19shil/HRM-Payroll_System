@@ -16,9 +16,9 @@ export default function EmployeeForm({ onSubmit, onCancel, initial }) {
       name: initial.name ?? '',
       email: initial.email ?? '',
       department: initial.department ?? '',
-      baseSalaryMonthly: initial.baseSalaryMonthly ?? 0,
-      deductionsMonthly: initial.deductionsMonthly ?? 0,
-      bonusesMonthly: initial.bonusesMonthly ?? 0
+      baseSalaryMonthly: initial.baseSalaryMonthly || '',
+      deductionsMonthly: initial.deductionsMonthly || '',
+      bonusesMonthly: initial.bonusesMonthly || ''
     });
   }, [initial]);
 

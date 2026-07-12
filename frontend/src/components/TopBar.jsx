@@ -5,7 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 export default function TopBar() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const isAdmin = user?.role_name === 'SUPER_ADMIN' || user?.role_name === 'HR_ADMIN';
+  const isAdmin = (user?.role_name || user?.role) === 'SUPER_ADMIN' || (user?.role_name || user?.role) === 'HR_ADMIN';
 
   const handleLogout = async () => {
     await logout();
@@ -24,22 +24,37 @@ export default function TopBar() {
     if (path.includes('holidays')) return 'Holidays';
     if (path.includes('profile')) return 'My Profile';
     if (path.includes('documents')) return 'Documents';
+    if (path.includes('notices')) return 'Notices';
     if (path.includes('notifications')) return 'Notifications';
     if (path.includes('settings')) return 'Settings';
     return 'Dashboard';
   };
 
+  const roleLabel = (user?.role_name || user?.role) === 'SUPER_ADMIN' ? 'Super Admin' :
+    (user?.role_name || user?.role) === 'HR_ADMIN' ? 'HR Admin' :
+    (user?.role_name || user?.role) === 'MANAGER' ? 'Manager' : 'Employee';
+
+  const initials = (() => {
+    const f = user?.first_name || '';
+    const l = user?.last_name || '';
+    const base = (f[0] || '') + (l[0] || '');
+    if (base) return base.toUpperCase();
+    const email = user?.email || '';
+    return email ? email[0].toUpperCase() : 'U';
+  })();
+
   return (
     <header className="topbar">
       <div className="topbar-left">
         <h1 className="topbar-title">{getPageTitle()}</h1>
+        <div className="topbar-search">
+          <span className="search-bar-icon">🔍</span>
+          <input placeholder="Search employees, documents, payroll..." />
+        </div>
       </div>
       <div className="topbar-right">
-        <span style={{ fontSize: '13px', color: '#64748b' }}>
-          {user?.role_name === 'SUPER_ADMIN' ? 'Super Admin' : 
-           user?.role_name === 'HR_ADMIN' ? 'HR Admin' :
-           user?.role_name === 'MANAGER' ? 'Manager' : 'Employee'}
-        </span>
+        <span className="role-pill">{roleLabel}</span>
+        <div className="topbar-avatar" title={user?.email || ''}>{initials}</div>
         <button className="btn btn-sm" onClick={handleLogout}>
           Logout
         </button>

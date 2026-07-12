@@ -8,8 +8,19 @@ export default function AttendanceManagement() {
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [summary, setSummary] = useState(null);
+  const [month, setMonth] = useState(new Date().getMonth() + 1);
+  const [year, setYear] = useState(new Date().getFullYear());
+
+  const months = ['', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
   useEffect(() => { loadData(); }, [page, date]);
+
+  useEffect(() => {
+    attendanceAPI.getAdminSummary({ month, year })
+      .then(res => setSummary(res.data.data))
+      .catch(() => setSummary(null));
+  }, [month, year]);
 
   const loadData = async () => {
     try {
@@ -29,6 +40,49 @@ export default function AttendanceManagement() {
 
   return (
     <div>
+      <div className="toolbar" style={{ marginBottom: 12 }}>
+        <div className="toolbar-left">
+          <span style={{ fontSize: 13, color: '#64748b', fontWeight: 600 }}>Monthly Summary:</span>
+          <select className="form-select" value={month} onChange={e => setMonth(Number(e.target.value))} style={{ width: 130 }}>
+            {months.map((m, i) => <option key={i} value={i}>{m}</option>)}
+          </select>
+          <input type="number" className="form-input" value={year} onChange={e => setYear(Number(e.target.value))} style={{ width: 100 }} />
+        </div>
+      </div>
+
+      {summary && (
+        <div className="grid-4" style={{ marginBottom: 24 }}>
+          <div className="stat-card">
+            <div className="stat-icon green">✅</div>
+            <div className="stat-content">
+              <div className="stat-label">Present</div>
+              <div className="stat-value">{summary.present_days || 0}</div>
+            </div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-icon yellow">⚠️</div>
+            <div className="stat-content">
+              <div className="stat-label">Late</div>
+              <div className="stat-value">{summary.late_days || 0}</div>
+            </div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-icon red">❌</div>
+            <div className="stat-content">
+              <div className="stat-label">Absent</div>
+              <div className="stat-value">{summary.absent_days || 0}</div>
+            </div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-icon blue">📊</div>
+            <div className="stat-content">
+              <div className="stat-label">Total Hours</div>
+              <div className="stat-value">{parseFloat(summary.total_working_hours || 0).toFixed(1) || 0}h</div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="toolbar">
         <div className="toolbar-left">
           <input type="date" className="form-input" value={date} onChange={e => { setDate(e.target.value); setPage(1); }} style={{ width: 200 }} />

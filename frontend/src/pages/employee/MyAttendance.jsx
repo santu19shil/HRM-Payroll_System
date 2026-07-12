@@ -6,16 +6,20 @@ export default function MyAttendance() {
   const [records, setRecords] = useState([]);
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [month, setMonth] = useState(new Date().getMonth() + 1);
+  const [year, setYear] = useState(new Date().getFullYear());
+
+  const months = ['', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [month, year]);
 
   const loadData = async () => {
     try {
       const [histRes, sumRes] = await Promise.all([
-        attendanceAPI.getHistory({ month: new Date().getMonth() + 1, year: new Date().getFullYear(), limit: 50 }),
-        attendanceAPI.getSummary({ month: new Date().getMonth() + 1, year: new Date().getFullYear() })
+        attendanceAPI.getHistory({ month, year, limit: 50 }),
+        attendanceAPI.getSummary({ month, year })
       ]);
       setRecords(histRes.data.data);
       setSummary(sumRes.data.data);
@@ -32,6 +36,16 @@ export default function MyAttendance() {
 
   return (
     <div>
+      <div className="toolbar" style={{ marginBottom: 12 }}>
+        <div className="toolbar-left">
+          <span style={{ fontSize: 13, color: '#64748b', fontWeight: 600 }}>Monthly Summary:</span>
+          <select className="form-select" value={month} onChange={e => setMonth(Number(e.target.value))} style={{ width: 130 }}>
+            {months.map((m, i) => <option key={i} value={i}>{m}</option>)}
+          </select>
+          <input type="number" className="form-input" value={year} onChange={e => setYear(Number(e.target.value))} style={{ width: 100 }} />
+        </div>
+      </div>
+
       {summary && (
         <div className="grid-4" style={{ marginBottom: 24 }}>
           <div className="stat-card">
@@ -59,7 +73,7 @@ export default function MyAttendance() {
             <div className="stat-icon blue">📊</div>
             <div className="stat-content">
               <div className="stat-label">Total Hours</div>
-              <div className="stat-value">{summary.total_working_hours?.toFixed(1) || 0}h</div>
+              <div className="stat-value">{parseFloat(summary.total_working_hours || 0).toFixed(1) || 0}h</div>
             </div>
           </div>
         </div>

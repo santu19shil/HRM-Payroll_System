@@ -18,15 +18,23 @@ export function AuthProvider({ children }) {
     try {
       const response = await authAPI.getMe();
       const userData = response.data.data;
-      setUser(userData);
+      setUser({
+        ...userData,
+        unreadLeavesCount: userData.unreadLeavesCount ?? 0,
+        unreadDocumentsCount: userData.unreadDocumentsCount ?? 0
+      });
       setIsAuthenticated(true);
-      localStorage.setItem('userRole', userData.role_name);
+      const normalizedRole = userData.role || userData.role_name;
+      localStorage.setItem('userRole', normalizedRole);
     } catch (err) {
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
-      localStorage.removeItem('userRole');
-      setUser(null);
-      setIsAuthenticated(false);
+      if (err.response?.status === 401) {
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+        localStorage.removeItem('userRole');
+        setUser(null);
+        setIsAuthenticated(false);
+      }
+      // For network/server errors, keep the user logged in and retry later
     } finally {
       setLoading(false);
     }
@@ -38,10 +46,14 @@ export function AuthProvider({ children }) {
 
   const login = async (credentials) => {
     const response = await authAPI.login(credentials);
-    const { accessToken, user: userData } = response.data.data;
+    const { accessToken, refreshToken, user: userData } = response.data.data;
     
     localStorage.setItem('accessToken', accessToken);
-    localStorage.setItem('userRole', userData.role);
+    if (refreshToken) {
+      localStorage.setItem('refreshToken', refreshToken);
+    }
+    const normalizedRole = userData.role || userData.role_name;
+    localStorage.setItem('userRole', normalizedRole);
     
     setUser(userData);
     setIsAuthenticated(true);
@@ -58,12 +70,17 @@ export function AuthProvider({ children }) {
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
     localStorage.removeItem('userRole');
+    localStorage.removeItem('showFirstLoginModal');
     setUser(null);
     setIsAuthenticated(false);
   };
 
   const changePassword = async (data) => {
     const response = await authAPI.changePassword(data);
+    if (response.data.success) {
+      setUser(prev => ({ ...prev, isFirstLogin: false, tempPassword: null }));
+      localStorage.removeItem('showFirstLoginModal');
+    }
     return response.data;
   };
 

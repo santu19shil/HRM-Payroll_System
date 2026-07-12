@@ -67,7 +67,7 @@ export default function ForgotPasswordPage() {
             </button>
 
             <div style={{ marginTop: '16px', textAlign: 'center' }}>
-              <Link to="/login" style={{ color: '#2563eb', fontSize: '14px', textDecoration: 'none' }}>
+              <Link to="/login" style={{ color: 'var(--primary)', fontSize: '14px', textDecoration: 'none' }}>
                 Back to Login
               </Link>
             </div>

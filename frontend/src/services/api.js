@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:5000/api';
+export const API_BASE_URL = 'http://localhost:5000/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -28,17 +28,25 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    // Do NOT attempt token refresh for the login endpoint itself
+    if (
+      error.response?.status === 401 &&
+      !originalRequest._retry &&
+      !originalRequest.url.includes('/auth/login')
+    ) {
       originalRequest._retry = true;
 
       try {
         const refreshToken = localStorage.getItem('refreshToken');
-        const response = await axios.post(`${API_BASE_URL}/auth/refresh`, {
-          refreshToken
-        }, { withCredentials: true });
+        const response = await axios.post(
+          `${API_BASE_URL}/auth/refresh`,
+          { refreshToken },
+          { withCredentials: true }
+        );
 
-        const { accessToken } = response.data.data;
+        const { accessToken, refreshToken: newRefreshToken } = response.data.data;
         localStorage.setItem('accessToken', accessToken);
+        if (newRefreshToken) localStorage.setItem('refreshToken', newRefreshToken);
 
         originalRequest.headers.Authorization = `Bearer ${accessToken}`;
         return api(originalRequest);
@@ -74,11 +82,20 @@ export const employeeAPI = {
   create: (data) => api.post('/employees', data),
   update: (id, data) => api.put(`/employees/${id}`, data),
   delete: (id) => api.delete(`/employees/${id}`),
+
+  // Self service
   getMyProfile: () => api.get('/employees/profile'),
   updateMyProfile: (data) => api.put('/employees/profile', data),
-  uploadProfilePicture: (formData) => api.post('/employees/profile/picture', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' }
-  })
+  uploadProfilePicture: (formData) =>
+    api.post('/employees/profile/picture', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    }),
+
+  // HR/Admin
+  uploadProfilePictureById: (id, formData) =>
+    api.post(`/employees/${id}/profile/picture`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
 };
 
 // Department APIs
@@ -107,6 +124,7 @@ export const attendanceAPI = {
   getToday: () => api.get('/attendance/today'),
   getHistory: (params) => api.get('/attendance/history', { params }),
   getSummary: (params) => api.get('/attendance/summary', { params }),
+  getAdminSummary: (params) => api.get('/attendance/admin-summary', { params }),
   getAll: (params) => api.get('/attendance', { params }),
   correct: (id, data) => api.put(`/attendance/${id}/correct`, data)
 };
@@ -126,9 +144,19 @@ export const leaveAPI = {
 export const payrollAPI = {
   getMy: () => api.get('/payroll/my'),
   getSalaryStructure: () => api.get('/payroll/salary-structure'),
+  getComponents: () => api.get('/payroll/components'),
+  getEmployeeSalaryStructure: (id) =>
+    api.get(`/payroll/employees/${id}/salary-structure`),
+  updateSalaryStructure: (id, data) =>
+    api.put(`/payroll/employees/${id}/salary-structure`, data),
   downloadPayslip: (id) => api.get(`/payroll/${id}/download`, { responseType: 'blob' }),
   getRuns: () => api.get('/payroll/runs'),
-  process: (data) => api.post('/payroll/process', data)
+  getEmployees: () => api.get('/payroll/employees'),
+  getAllPayslips: () => api.get('/payroll/admin/payslips'),
+  deletePayslip: (id) => api.delete(`/payroll/admin/payslips/${id}`),
+  deleteRun: (id) => api.delete(`/payroll/runs/${id}`),
+  process: (data) => api.post('/payroll/process', data),
+  generate: (data) => api.post('/payroll/generate', data)
 };
 
 // Holiday APIs
@@ -141,21 +169,42 @@ export const holidayAPI = {
 
 // Document APIs
 export const documentAPI = {
-  getMy: () => api.get('/documents'),
-  upload: (formData) => api.post('/documents/upload', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' }
-  })
+  getMy: () => api.get('/documents/my'),
+  getAll: () => api.get('/documents/all'),
+  upload: (formData) =>
+    api.post('/documents/upload', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    }),
+  verify: (id) => api.put(`/documents/${id}/verify`),
+  reject: (id, data) => api.put(`/documents/${id}/reject`, data),
+  update: (id, data) => api.put(`/documents/${id}`, data),
+  delete: (id) => api.delete(`/documents/${id}`)
+};
+
+// Notice APIs
+export const noticeAPI = {
+  create: (data, config) => api.post('/notices', data, config),
+  list: () => api.get('/notices'),
+  my: () => api.get('/notices/my')
 };
 
 // Notification APIs
 export const notificationAPI = {
   getMy: (params) => api.get('/notifications', { params }),
+  getCounts: () => api.get('/notifications/counts'),
   markAsRead: (id) => api.put(`/notifications/${id}/read`),
+  markCategoryRead: (category) =>
+    api.put('/notifications/read-category', { category }),
   markAllAsRead: () => api.put('/notifications/read-all')
 };
 
 // Settings APIs
 export const settingsAPI = {
   get: (params) => api.get('/settings', { params }),
-  update: (data) => api.put('/settings', data)
+  update: (data) => api.put('/settings', data),
+  uploadLogo: (formData) =>
+    api.post('/settings/logo', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
 };
+

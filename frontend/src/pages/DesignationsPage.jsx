@@ -1,12 +1,57 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Briefcase, Plus, Edit2, Trash2 } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
 
 export default function DesignationsPage() {
-  const [designations, setDesignations] = useState([
-    { id: '1', title: 'Software Engineer', department: 'Engineering', salaryGrade: 'L3', baseSalary: '$80,000' },
-    { id: '2', title: 'Senior Software Engineer', department: 'Engineering', salaryGrade: 'L4', baseSalary: '$120,000' },
-    { id: '3', title: 'Sales Executive', department: 'Sales', salaryGrade: 'S1', baseSalary: '$50,000' },
-  ]);
+  const [designations, setDesignations] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const location = useLocation();
+
+  useEffect(() => {
+    let mounted = true;
+
+    (async () => {
+      try {
+        setLoading(true);
+        const token = localStorage.getItem('accessToken');
+        const res = await fetch('http://localhost:5000/api/designations', {
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {})
+          }
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data?.error || 'Failed to load designations');
+        if (!mounted) return;
+        setDesignations(data.data || data.designations || []);
+      } catch (e) {
+        if (!mounted) return;
+        setDesignations([]);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, [location.key]);
+
+  if (loading) {
+    return (
+      <div className="loading-page">
+        <div className="loading-spinner"></div>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="loading-page">
+        <div className="loading-spinner"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

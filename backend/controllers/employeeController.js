@@ -2,9 +2,79 @@ const bcrypt = require('bcryptjs');
 const pool = require('../config/database');
 const { success, created, badRequest, notFound, error, paginated } = require('../utils/response');
 const { generateId, generateEmployeeId, generateTempPassword, isValidEmail } = require('../utils/helpers');
+const { validateEmployee } = require('../utils/validators');
 const { sendWelcomeEmail } = require('../config/email');
 
 const SALT_ROUNDS = 12;
+
+/**
+ * Helper to map snake_case DB row to camelCase frontend-friendly object
+ */
+const mapEmployee = (row) => ({
+  id: row.id,
+  employee_id: row.employee_id,
+  user_id: row.user_id,
+  first_name: row.first_name,
+  last_name: row.last_name,
+  name: `${row.first_name || ''} ${row.last_name || ''}`.trim(),
+  email: row.email,
+  phone: row.phone,
+  contactNumber: row.phone,
+  gender: row.gender,
+  date_of_birth: row.date_of_birth,
+  dob: row.date_of_birth,
+  address: row.address,
+  city: row.city,
+  state: row.state,
+  postal_code: row.postal_code,
+  postalCode: row.postal_code,
+  country: row.country,
+  emergency_contact_name: row.emergency_contact_name,
+  emergencyContactName: row.emergency_contact_name,
+  emergency_contact_phone: row.emergency_contact_phone,
+  emergencyContactPhone: row.emergency_contact_phone,
+  emergency_contact_relation: row.emergency_contact_relation,
+  emergencyContactRelation: row.emergency_contact_relation,
+  department_id: row.department_id,
+  departmentId: row.department_id,
+  department_name: row.department_name,
+  designation_id: row.designation_id,
+  designationId: row.designation_id,
+  designation_title: row.designation_title,
+  reporting_manager_id: row.reporting_manager_id,
+  reportingManagerId: row.reporting_manager_id,
+  manager_name: row.manager_name,
+  joining_date: row.joining_date,
+  joiningDate: row.joining_date,
+  employment_type: row.employment_type,
+  employmentType: row.employment_type,
+  work_location: row.work_location,
+  workLocation: row.work_location,
+  basic_salary: row.basic_salary,
+  baseSalaryMonthly: row.basic_salary || row.ss_basic_salary,
+  bonusesMonthly: row.ss_bonuses_monthly || 0,
+  deductionsMonthly: row.ss_deductions_monthly || 0,
+  taxPercentage: row.ss_tax_percentage || 0,
+  grossPay: row.ss_total_earnings || 0,
+  totalDeductions: row.ss_total_deductions || 0,
+  netPay: row.ss_net_salary || 0,
+  profile_picture: row.profile_picture,
+  bank_account_name: row.bank_account_name,
+  bank_account_number: row.bank_account_number,
+  bank_name: row.bank_name,
+  bank_ifsc: row.bank_ifsc,
+  bank_branch: row.bank_branch,
+  pan_number: row.pan_number,
+  panNumber: row.pan_number,
+  aadhar_number: row.aadhar_number,
+  aadharNumber: row.aadhar_number,
+  uan_number: row.uan_number,
+  pf_number: row.pf_number,
+  is_active: row.is_active,
+  created_by: row.created_by,
+  created_at: row.created_at,
+  updated_at: row.updated_at
+});
 
 /**
  * Get employees with pagination and filters
@@ -55,18 +125,29 @@ const getEmployees = async (req, res) => {
       `SELECT e.*, 
               d.name as department_name, 
               des.title as designation_title,
-              CONCAT(m.first_name, ' ', m.last_name) as manager_name
+              CONCAT(m.first_name, ' ', m.last_name) as manager_name,
+              ss.basic_salary as ss_basic_salary, 
+              ss.bonuses_monthly as ss_bonuses_monthly, 
+              ss.deductions_monthly as ss_deductions_monthly, 
+              ss.tax_percentage as ss_tax_percentage,
+              ss.total_earnings as ss_total_earnings,
+              ss.total_deductions as ss_total_deductions,
+              ss.net_salary as ss_net_salary
        FROM employees e
        LEFT JOIN departments d ON e.department_id = d.id
        LEFT JOIN designations des ON e.designation_id = des.id
        LEFT JOIN employees m ON e.reporting_manager_id = m.id
+       LEFT JOIN salary_structures ss ON ss.employee_id = e.id AND ss.is_active = 1
        ${whereClause}
        ORDER BY e.created_at DESC
        LIMIT ? OFFSET ?`,
-      [...params, String(limit), String(offset)]
-    );
+       [...params, limit, offset]
+     );
 
-    return paginated(res, employees, total, page, limit);
+    // Map to camelCase for frontend
+    const mapped = employees.map(mapEmployee);
+
+    return paginated(res, mapped, total, page, limit);
   } catch (err) {
     console.error('Get employees error:', err);
     return error(res, 'Failed to fetch employees');
@@ -86,21 +167,23 @@ const getEmployeeById = async (req, res) => {
               d.name as department_name, d.description as department_description,
               des.title as designation_title, des.grade as designation_grade,
               CONCAT(m.first_name, ' ', m.last_name) as manager_name,
-              u.email as user_email, u.is_temp_password, u.must_change_password, u.is_active as user_active
+              u.email as user_email, u.is_temp_password, u.must_change_password, u.is_active as user_active,
+              ss.basic_salary as ss_basic_salary, ss.bonuses_monthly as ss_bonuses_monthly, ss.deductions_monthly as ss_deductions_monthly, ss.tax_percentage as ss_tax_percentage
        FROM employees e
        LEFT JOIN departments d ON e.department_id = d.id
        LEFT JOIN designations des ON e.designation_id = des.id
        LEFT JOIN employees m ON e.reporting_manager_id = m.id
        LEFT JOIN users u ON e.user_id = u.id
+       LEFT JOIN salary_structures ss ON ss.employee_id = e.id AND ss.is_active = 1
        WHERE e.id = ?`,
-      [id]
-    );
+        [id]
+     );
 
     if (!employees || employees.length === 0) {
       return notFound(res, 'Employee not found');
     }
 
-    return success(res, employees[0]);
+    return success(res, mapEmployee(employees[0]));
   } catch (err) {
     console.error('Get employee error:', err);
     return error(res, 'Failed to fetch employee');
@@ -124,17 +207,13 @@ const createEmployee = async (req, res) => {
       joining_date, employment_type, work_location,
       bank_account_name, bank_account_number, bank_name, bank_ifsc, bank_branch,
       pan_number, aadhar_number, uan_number, pf_number,
-      basic_salary
+      basic_salary, bonusesMonthly, deductionsMonthly, taxPercentage
     } = req.body;
 
-    // Validate required fields
-    if (!first_name || !last_name || !email) {
-      return badRequest(res, 'First name, last name and email are required');
-    }
-
-    // Validate email
-    if (!isValidEmail(email)) {
-      return badRequest(res, 'Invalid email format');
+    // Validate all fields against defined rules
+    const validationErrors = validateEmployee(req.body, 'create');
+    if (validationErrors.length > 0) {
+      return badRequest(res, `Validation failed: ${validationErrors.join('; ')}`);
     }
 
     // Check if email already exists
@@ -197,13 +276,17 @@ const createEmployee = async (req, res) => {
       ]
     );
 
-    // If basic salary provided, create salary structure
-    if (basic_salary && parseFloat(basic_salary) > 0) {
+    // If basic salary (or any salary component) provided, create salary structure
+    const basicSal = parseFloat(req.body.basic_salary ?? req.body.baseSalaryMonthly) || 0;
+    const bonusSal = parseFloat(bonusesMonthly) || 0;
+    const dedSal = parseFloat(deductionsMonthly) || 0;
+    const taxSal = parseFloat(taxPercentage) || 0;
+    if (basicSal > 0 || bonusSal > 0 || dedSal > 0 || taxSal > 0) {
       const salaryStructureId = generateId();
       await connection.query(
-        `INSERT INTO salary_structures (id, employee_id, effective_from, basic_salary, total_earnings, total_deductions, net_salary, is_active, created_by)
-         VALUES (?, ?, CURDATE(), ?, 0, 0, ?, 1, ?)`,
-        [salaryStructureId, employeeRecordId, basic_salary, basic_salary, req.user.userId || null]
+        `INSERT INTO salary_structures (id, employee_id, effective_from, basic_salary, bonuses_monthly, deductions_monthly, tax_percentage, total_earnings, total_deductions, net_salary, is_active, created_by)
+         VALUES (?, ?, CURDATE(), ?, ?, ?, ?, 0, 0, ?, 1, ?)`,
+        [salaryStructureId, employeeRecordId, basicSal, bonusSal, dedSal, taxSal, basicSal, req.user.userId || null]
       );
     }
 
@@ -240,19 +323,21 @@ const createEmployee = async (req, res) => {
  * PUT /api/employees/:id
  */
 const updateEmployee = async (req, res) => {
+  const connection = await pool.getConnection();
   try {
+    await connection.beginTransaction();
+
     const { id } = req.params;
     const updateData = req.body;
 
-    // Check employee exists
-    const [existing] = await pool.query('SELECT id FROM employees WHERE id = ?', [id]);
+    const [existing] = await connection.query('SELECT id, user_id FROM employees WHERE id = ?', [id]);
     if (existing.length === 0) {
+      await connection.commit();
       return notFound(res, 'Employee not found');
     }
 
-    // Build update query dynamically
     const allowedFields = [
-      'first_name', 'last_name', 'phone', 'gender', 'date_of_birth',
+      'first_name', 'last_name', 'email', 'phone', 'gender', 'date_of_birth',
       'address', 'city', 'state', 'postal_code', 'country',
       'emergency_contact_name', 'emergency_contact_phone', 'emergency_contact_relation',
       'department_id', 'designation_id', 'reporting_manager_id',
@@ -264,63 +349,125 @@ const updateEmployee = async (req, res) => {
     const updates = [];
     const params = [];
 
+    // Validate only the fields present in the request
+    const validationErrors = validateEmployee(updateData, 'update');
+    if (validationErrors.length > 0) {
+      await connection.commit();
+      return badRequest(res, `Validation failed: ${validationErrors.join('; ')}`);
+    }
+
     for (const field of allowedFields) {
       if (updateData[field] !== undefined) {
+        const value = updateData[field];
         updates.push(`${field} = ?`);
-        params.push(updateData[field]);
+        params.push(typeof value === 'string' && value.trim() === '' ? null : value);
       }
     }
 
     if (updates.length === 0) {
+      await connection.commit();
       return badRequest(res, 'No fields to update');
     }
 
     params.push(id);
 
-    await pool.query(
+    await connection.query(
       `UPDATE employees SET ${updates.join(', ')} WHERE id = ?`,
       params
     );
 
-    // If updating email, also update users table
-    if (updateData.email) {
-      await pool.query(
-        'UPDATE users SET email = ? WHERE id = (SELECT user_id FROM employees WHERE id = ?)',
-        [updateData.email, id]
+    if (updateData.email && existing[0].user_id) {
+      await connection.query(
+        'UPDATE users SET email = ? WHERE id = ?',
+        [updateData.email, existing[0].user_id]
       );
     }
 
+    if (updateData.basic_salary !== undefined || updateData.baseSalaryMonthly !== undefined) {
+      const basicSalary = parseFloat(updateData.basic_salary ?? updateData.baseSalaryMonthly) || 0;
+      const [structure] = await connection.query('SELECT id FROM salary_structures WHERE employee_id = ? AND is_active = 1', [id]);
+      
+      if (structure.length > 0) {
+        await connection.query(
+          'UPDATE salary_structures SET basic_salary = ?, total_earnings = ?, net_salary = ? WHERE id = ?',
+          [basicSalary, basicSalary, basicSalary, structure[0].id]
+        );
+      } else if (basicSalary > 0) {
+        const salaryStructureId = generateId();
+        await connection.query(
+          `INSERT INTO salary_structures (id, employee_id, effective_from, basic_salary, total_earnings, total_deductions, net_salary, is_active, created_by)
+           VALUES (?, ?, CURDATE(), ?, ?, 0, ?, 1, ?)`,
+          [salaryStructureId, id, basicSalary, basicSalary, basicSalary, req.user.userId || null]
+        );
+      }
+    }
+
+    // Persist bonus / deduction / tax components on the salary structure
+    if (updateData.bonusesMonthly !== undefined || updateData.deductionsMonthly !== undefined || updateData.taxPercentage !== undefined) {
+      const bonus = parseFloat(updateData.bonusesMonthly) || 0;
+      const ded = parseFloat(updateData.deductionsMonthly) || 0;
+      const tax = parseFloat(updateData.taxPercentage) || 0;
+      const [structure] = await connection.query('SELECT id FROM salary_structures WHERE employee_id = ? AND is_active = 1', [id]);
+      if (structure.length > 0) {
+        await connection.query(
+          'UPDATE salary_structures SET bonuses_monthly = ?, deductions_monthly = ?, tax_percentage = ? WHERE id = ?',
+          [bonus, ded, tax, structure[0].id]
+        );
+      } else {
+        const salaryStructureId = generateId();
+        await connection.query(
+          `INSERT INTO salary_structures (id, employee_id, effective_from, basic_salary, bonuses_monthly, deductions_monthly, tax_percentage, total_earnings, total_deductions, net_salary, is_active, created_by)
+           VALUES (?, ?, CURDATE(), 0, ?, ?, ?, 0, 0, 0, 1, ?)`,
+          [salaryStructureId, id, bonus, ded, tax, req.user.userId || null]
+        );
+      }
+    }
+
+    await connection.commit();
     return success(res, null, 'Employee updated successfully');
   } catch (err) {
+    await connection.rollback();
     console.error('Update employee error:', err);
     return error(res, 'Failed to update employee');
+  } finally {
+    connection.release();
   }
 };
 
 /**
- * Deactivate employee (soft delete)
+ * Deactivate employee (hard delete)
  * DELETE /api/employees/:id
  */
 const deactivateEmployee = async (req, res) => {
+  const connection = await pool.getConnection();
   try {
+    await connection.beginTransaction();
+
     const { id } = req.params;
 
-    const [existing] = await pool.query('SELECT id, user_id FROM employees WHERE id = ?', [id]);
+    const [existing] = await connection.query('SELECT id, user_id FROM employees WHERE id = ?', [id]);
     if (existing.length === 0) {
+      await connection.commit();
       return notFound(res, 'Employee not found');
     }
 
-    // Soft delete employee and deactivate user
-    await pool.query('UPDATE employees SET is_active = 0 WHERE id = ?', [id]);
-    
-    if (existing[0].user_id) {
-      await pool.query('UPDATE users SET is_active = 0 WHERE id = ?', [existing[0].user_id]);
+    const userId = existing[0].user_id;
+
+    if (userId) {
+      await connection.query('DELETE FROM users WHERE id = ?', [userId]);
     }
+
+    await connection.query('DELETE FROM employees WHERE id = ?', [id]);
+
+    await connection.commit();
 
     return success(res, null, 'Employee deactivated successfully');
   } catch (err) {
+    await connection.rollback();
     console.error('Deactivate employee error:', err);
     return error(res, 'Failed to deactivate employee');
+  } finally {
+    connection.release();
   }
 };
 
@@ -349,7 +496,7 @@ const getMyProfile = async (req, res) => {
       return notFound(res, 'Employee profile not found');
     }
 
-    return success(res, employees[0]);
+    return success(res, mapEmployee(employees[0]));
   } catch (err) {
     console.error('Get my profile error:', err);
     return error(res, 'Failed to fetch profile');

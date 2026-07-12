@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { leaveAPI } from '../../services/api';
+import { leaveAPI, notificationAPI } from '../../services/api';
 import toast from 'react-hot-toast';
 
 export default function MyLeaves() {
@@ -11,6 +11,10 @@ export default function MyLeaves() {
   const [formData, setFormData] = useState({ leave_type_id: '', start_date: '', end_date: '', reason: '' });
 
   useEffect(() => { loadData(); }, []);
+
+  useEffect(() => {
+    notificationAPI.markCategoryRead('LEAVE').catch(() => {});
+  }, []);
 
   const loadData = async () => {
     try {
@@ -41,6 +45,8 @@ export default function MyLeaves() {
     const map = { 'Pending': 'badge-warning', 'Approved': 'badge-success', 'Rejected': 'badge-danger', 'Cancelled': 'badge-gray' };
     return <span className={`badge ${map[status] || 'badge-gray'}`}>{status}</span>;
   };
+
+  const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '-';
 
   if (loading) return <div className="loading-page"><div className="loading-spinner"></div></div>;
 
@@ -73,8 +79,8 @@ export default function MyLeaves() {
             {leaves.map(l => (
               <tr key={l.id}>
                 <td><span className="badge badge-info">{l.leave_type_name}</span></td>
-                <td>{l.start_date}</td>
-                <td>{l.end_date}</td>
+                <td>{fmtDate(l.start_date)}</td>
+                <td>{fmtDate(l.end_date)}</td>
                 <td>{l.total_days}</td>
                 <td style={{ maxWidth: 200 }}>{l.reason}</td>
                 <td>{getStatusBadge(l.status)}</td>

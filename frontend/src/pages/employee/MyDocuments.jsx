@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { documentAPI } from '../../services/api';
+import { documentAPI, notificationAPI, API_BASE_URL } from '../../services/api';
 import toast from 'react-hot-toast';
 
 export default function MyDocuments() {
@@ -9,6 +9,10 @@ export default function MyDocuments() {
   const fileInputRef = useRef(null);
 
   useEffect(() => { loadData(); }, []);
+
+  useEffect(() => {
+    notificationAPI.markCategoryRead('DOCUMENT').catch(() => {});
+  }, []);
 
   const loadData = async () => {
     try {
@@ -28,12 +32,20 @@ export default function MyDocuments() {
       formData.append('document', file);
       formData.append('name', file.name);
       formData.append('type', file.type);
-      
+
       await documentAPI.upload(formData);
       toast.success('Document uploaded');
       loadData();
     } catch (err) { toast.error('Upload failed'); }
     finally { setUploading(false); }
+  };
+
+  const fileUrl = (doc) => `${API_BASE_URL.replace('/api', '')}${doc.file_path}`;
+
+  const getStatusBadge = (doc) => {
+    if (doc.status === 'Verified') return <span className="badge badge-success">Accepted</span>;
+    if (doc.status === 'Rejected') return <span className="badge badge-danger">Rejected</span>;
+    return <span className="badge badge-warning">Pending</span>;
   };
 
   if (loading) return <div className="loading-page"><div className="loading-spinner"></div></div>;
@@ -57,19 +69,27 @@ export default function MyDocuments() {
 
       <div className="table-container">
         <table>
-          <thead><tr><th>Name</th><th>Type</th><th>Size</th><th>Uploaded</th><th>Status</th></tr></thead>
+          <thead><tr><th>Name</th><th>Type</th><th>Size</th><th>Uploaded</th><th>Status</th><th>Action</th></tr></thead>
           <tbody>
-            {documents.map(d => (
+            {Array.isArray(documents) && documents.length > 0 && documents.map(d => (
               <tr key={d.id}>
                 <td>{d.name}</td>
                 <td><span className="badge badge-info">{d.type}</span></td>
                 <td>{d.file_size ? `${(d.file_size / 1024).toFixed(1)} KB` : '-'}</td>
-                <td>{new Date(d.uploaded_at).toLocaleDateString()}</td>
-                <td><span className={`badge ${d.is_verified ? 'badge-success' : 'badge-warning'}`}>{d.is_verified ? 'Verified' : 'Pending'}</span></td>
+                <td>{d.uploaded_at ? new Date(d.uploaded_at).toLocaleDateString() : '-'}</td>
+                <td>
+                  {getStatusBadge(d)}
+                  {d.status === 'Rejected' && d.rejection_reason && (
+                    <div style={{ fontSize: 12, color: '#ef4444', marginTop: 4 }}>{d.rejection_reason}</div>
+                  )}
+                </td>
+                <td>
+                  <a href={fileUrl(d)} target="_blank" rel="noreferrer" className="btn btn-sm">View</a>
+                </td>
               </tr>
             ))}
             {documents.length === 0 && (
-              <tr><td colSpan="5" style={{ textAlign: 'center', padding: 40 }}>No documents uploaded</td></tr>
+              <tr><td colSpan="6" style={{ textAlign: 'center', padding: 40 }}>No documents uploaded</td></tr>
             )}
           </tbody>
         </table>

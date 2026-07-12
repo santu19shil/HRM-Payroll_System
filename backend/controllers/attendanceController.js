@@ -234,7 +234,7 @@ const getAttendanceHistory = async (req, res) => {
 
     const [records] = await pool.query(
       `SELECT * FROM attendance ${whereClause} ORDER BY date DESC LIMIT ? OFFSET ?`,
-      [...params, String(limit), String(offset)]
+      [...params, limit, offset]
     );
 
     return paginated(res, records, total, page, limit);
@@ -281,6 +281,37 @@ const getAttendanceSummary = async (req, res) => {
 };
 
 /**
+ * Get org-wide monthly attendance summary (HR/admin dashboard)
+ * GET /api/attendance/admin-summary
+ */
+const getAdminMonthlySummary = async (req, res) => {
+  try {
+    const year = req.query.year || new Date().getFullYear();
+    const month = req.query.month || (new Date().getMonth() + 1);
+
+    const [summary] = await pool.query(
+      `SELECT 
+         COUNT(*) as total_records,
+         COUNT(DISTINCT employee_id) as employees_with_records,
+         SUM(CASE WHEN status = 'Present' THEN 1 ELSE 0 END) as present_days,
+         SUM(CASE WHEN status = 'Late' THEN 1 ELSE 0 END) as late_days,
+         SUM(CASE WHEN status = 'Absent' THEN 1 ELSE 0 END) as absent_days,
+         SUM(CASE WHEN status = 'On Leave' THEN 1 ELSE 0 END) as leave_days,
+         COALESCE(SUM(working_hours), 0) as total_working_hours,
+         COALESCE(AVG(working_hours), 0) as avg_working_hours
+       FROM attendance 
+       WHERE YEAR(date) = ? AND MONTH(date) = ?`,
+      [year, month]
+    );
+
+    return success(res, summary[0]);
+  } catch (err) {
+    console.error('Get admin monthly summary error:', err);
+    return error(res, 'Failed to fetch attendance summary');
+  }
+};
+
+/**
  * Get all attendance (HR view)
  * GET /api/attendance
  */
@@ -312,7 +343,7 @@ const getAllAttendance = async (req, res) => {
        ${whereClause}
        ORDER BY a.date DESC, a.check_in_time DESC
        LIMIT ? OFFSET ?`,
-      [...params, String(limit), String(offset)]
+      [...params, limit, offset]
     );
 
     return paginated(res, records, total, page, limit);
@@ -355,6 +386,7 @@ module.exports = {
   getTodayAttendance,
   getAttendanceHistory,
   getAttendanceSummary,
+  getAdminMonthlySummary,
   getAllAttendance,
   correctAttendance
 };

@@ -173,6 +173,42 @@ const safeJsonParse = (str, defaultVal = null) => {
   }
 };
 
+/**
+ * Create a notification row for a user.
+ * opts: { userId, title, message, type, category, referenceType, referenceId }
+ */
+const createNotification = async (connection, opts) => {
+  const id = generateId();
+  await connection.query(
+    `INSERT INTO notifications (id, user_id, title, message, type, category, reference_type, reference_id, link)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      id,
+      opts.userId,
+      opts.title,
+      opts.message,
+      opts.type || 'INFO',
+      opts.category || 'General',
+      opts.referenceType || null,
+      opts.referenceId || null,
+      opts.link || null
+    ]
+  );
+  return id;
+};
+
+/**
+ * Get user ids of all active HR/Admin users (SUPER_ADMIN, HR_ADMIN).
+ */
+const getAdminUserIds = async (connection) => {
+  const [rows] = await connection.query(
+    `SELECT u.id FROM users u
+     JOIN roles r ON u.role_id = r.id
+     WHERE r.name IN ('SUPER_ADMIN', 'HR_ADMIN') AND u.is_active = 1`
+  );
+  return rows.map(r => r.id);
+};
+
 module.exports = {
   generateId,
   generateEmployeeId,
@@ -188,5 +224,7 @@ module.exports = {
   sanitize,
   isValidEmail,
   isValidPhone,
-  safeJsonParse
+  safeJsonParse,
+  createNotification,
+  getAdminUserIds
 };

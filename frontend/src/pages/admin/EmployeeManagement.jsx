@@ -21,6 +21,17 @@ export default function EmployeeManagement() {
     bank_account_name: '', bank_account_number: '', bank_name: '', bank_ifsc: '', bank_branch: '',
     pan_number: '', aadhar_number: '', basic_salary: ''
   });
+  const [tempPasswords, setTempPasswords] = useState({});
+
+  const getDepartmentName = (id) => {
+    const dept = departments.find(d => d.id === id);
+    return dept ? dept.name : '-';
+  };
+
+  const getDesignationTitle = (id) => {
+    const desig = designations.find(d => d.id === id);
+    return desig ? desig.title : '-';
+  };
 
   useEffect(() => {
     loadData();
@@ -47,12 +58,16 @@ export default function EmployeeManagement() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      const payload = {
+        ...formData,
+        name: `${formData.first_name || ''} ${formData.last_name || ''}`.trim()
+      };
       if (editingEmployee) {
-        await employeeAPI.update(editingEmployee.id, formData);
+        await employeeAPI.update(editingEmployee.id, payload);
         toast.success('Employee updated successfully');
       } else {
-        const res = await employeeAPI.create(formData);
-        toast.success(`Employee created! Temp Password: ${res.data.data.temp_password}`);
+        const res = await employeeAPI.create(payload);
+        toast.success('Employee created successfully');
       }
       setShowModal(false);
       setEditingEmployee(null);
@@ -77,19 +92,35 @@ export default function EmployeeManagement() {
 
   const openEdit = (emp) => {
     setEditingEmployee(emp);
+    const bankDetails = emp.bankDetailsJson ? JSON.parse(emp.bankDetailsJson) : {};
     setFormData({
-      first_name: emp.first_name, last_name: emp.last_name, email: emp.email,
-      phone: emp.phone || '', gender: emp.gender || '', date_of_birth: emp.date_of_birth || '',
-      address: emp.address || '', city: emp.city || '', state: emp.state || '', postal_code: emp.postal_code || '',
-      emergency_contact_name: emp.emergency_contact_name || '', emergency_contact_phone: emp.emergency_contact_phone || '',
-      emergency_contact_relation: emp.emergency_contact_relation || '',
-      department_id: emp.department_id || '', designation_id: emp.designation_id || '',
-      reporting_manager_id: emp.reporting_manager_id || '',
-      joining_date: emp.joining_date || '', employment_type: emp.employment_type || 'Full-Time',
-      work_location: emp.work_location || '',
-      bank_account_name: emp.bank_account_name || '', bank_account_number: emp.bank_account_number || '',
-      bank_name: emp.bank_name || '', bank_ifsc: emp.bank_ifsc || '', bank_branch: emp.bank_branch || '',
-      pan_number: emp.pan_number || '', aadhar_number: emp.aadhar_number || '', basic_salary: ''
+      first_name: emp.name ? emp.name.split(' ')[0] : '',
+      last_name: emp.name ? emp.name.split(' ').slice(1).join(' ') : '',
+      email: emp.email || '',
+      phone: emp.contactNumber || '',
+      gender: emp.gender || '',
+      date_of_birth: emp.dob || '',
+      address: emp.address || '',
+      city: emp.city || '',
+      state: emp.state || '',
+      postal_code: emp.postalCode || '',
+      emergency_contact_name: emp.emergencyContactName || '',
+      emergency_contact_phone: emp.emergencyContactPhone || '',
+      emergency_contact_relation: emp.emergencyContactRelation || '',
+      department_id: emp.departmentId || '',
+      designation_id: emp.designationId || '',
+      reporting_manager_id: emp.reportingManagerId || '',
+      joining_date: emp.joiningDate || '',
+      employment_type: emp.employmentType || 'Full-Time',
+      work_location: emp.workLocation || '',
+      bank_account_name: bankDetails.accountName || '',
+      bank_account_number: bankDetails.accountNumber || '',
+      bank_name: bankDetails.bankName || '',
+      bank_ifsc: bankDetails.ifsc || '',
+      bank_branch: bankDetails.branch || '',
+      pan_number: emp.panNumber || '',
+      aadhar_number: emp.aadharNumber || '',
+      basic_salary: emp.baseSalaryMonthly || ''
     });
     setShowModal(true);
   };
@@ -132,6 +163,7 @@ export default function EmployeeManagement() {
               <th>Email</th>
               <th>Department</th>
               <th>Designation</th>
+              <th>Salary</th>
               <th>Phone</th>
               <th>Actions</th>
             </tr>
@@ -139,20 +171,44 @@ export default function EmployeeManagement() {
           <tbody>
             {employees.map((emp) => (
               <tr key={emp.id}>
-                <td><span className="badge badge-primary">{emp.employee_id}</span></td>
-                <td>{emp.first_name} {emp.last_name}</td>
-                <td>{emp.email}</td>
-                <td>{emp.department_name || '-'}</td>
-                <td>{emp.designation_title || '-'}</td>
-                <td>{emp.phone || '-'}</td>
                 <td>
-                  <button className="btn btn-sm" onClick={() => openEdit(emp)}>Edit</button>
-                  <button className="btn btn-sm btn-danger" style={{ marginLeft: 8 }} onClick={() => handleDelete(emp.id)}>Deactivate</button>
+                  <span className="badge badge-primary">{emp.employee_id}</span>
+
                 </td>
+                <td>{emp.name}</td>
+                <td>{emp.email}</td>
+                <td>{getDepartmentName(emp.departmentId)}</td>
+                <td>{getDesignationTitle(emp.designationId)}</td>
+                <td>{emp.baseSalaryMonthly ? `₹${parseFloat(emp.baseSalaryMonthly).toLocaleString()}` : '-'}</td>
+                <td>{emp.contactNumber || '-'}</td>
+                  <td>
+                    <div className="btnrow" style={{ gap: 8, flexWrap: 'wrap' }}>
+                      <button
+                        className="btn btn-sm"
+                        onClick={() => {
+                          // open view-only profile in a new window
+                          const w = window.open('', '_blank');
+                          if (!w) {
+                            toast.error('Popup blocked. Please allow popups to view employee profile.');
+                            return;
+                          }
+                          w.document.write('<div style="font-family:system-ui;padding:20px">Loading employee profile...</div>');
+                          w.document.close();
+                          // Actual rendering is handled by React route below; this window will be redirected.
+                          w.location.href = `/admin/employees/profile/${emp.id}`;
+                        }}
+                      >
+                        View Profile
+                      </button>
+                      <button className="btn btn-sm btn-danger" style={{ marginLeft: 0 }} onClick={() => handleDelete(emp.id)}>
+                        Deactivate
+                      </button>
+                    </div>
+                  </td>
               </tr>
             ))}
             {employees.length === 0 && (
-              <tr><td colSpan="7" style={{ textAlign: 'center', padding: '40px' }}>No employees found</td></tr>
+              <tr><td colSpan="8" style={{ textAlign: 'center', padding: '40px' }}>No employees found</td></tr>
             )}
           </tbody>
         </table>

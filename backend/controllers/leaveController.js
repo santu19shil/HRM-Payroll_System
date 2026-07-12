@@ -1,6 +1,6 @@
 const pool = require('../config/database');
 const { success, created, badRequest, notFound, error, paginated } = require('../utils/response');
-const { generateId, daysBetween } = require('../utils/helpers');
+const { generateId, daysBetween, createNotification, getAdminUserIds } = require('../utils/helpers');
 
 /**
  * Get leave types
@@ -93,6 +93,27 @@ const applyLeave = async (req, res) => {
     }
 
     await connection.commit();
+
+    // Notify admins about the new leave request
+    try {
+      const adminIds = await getAdminUserIds(connection);
+      const [emp] = await connection.query('SELECT CONCAT(first_name, " ", last_name) as full_name FROM employees WHERE id = ?', [employeeId]);
+      const empName = emp.length > 0 ? emp[0].full_name : 'An employee';
+      for (const adminId of adminIds) {
+        await createNotification(connection, {
+          userId: adminId,
+          title: 'New Leave Request',
+          message: `${empName} applied for ${totalDays}-day leave (${start_date} to ${end_date})`,
+          type: 'INFO',
+          category: 'LEAVE',
+          referenceType: 'LEAVE',
+          referenceId: leaveRequestId
+        });
+      }
+    } catch (notifyErr) {
+      console.error('Notify admins leave error:', notifyErr);
+    }
+
     return created(res, { id: leaveRequestId }, 'Leave applied successfully');
   } catch (err) {
     await connection.rollback();
@@ -193,7 +214,7 @@ const getAllLeaves = async (req, res) => {
        ${whereClause}
        ORDER BY lr.applied_at DESC
        LIMIT ? OFFSET ?`,
-      [...params, String(limit), String(offset)]
+       [...params, limit, offset]
     );
 
     return paginated(res, leaves, total, page, limit);
@@ -258,6 +279,20 @@ const approveLeave = async (req, res) => {
       currentDate.setDate(currentDate.getDate() + 1);
     }
 
+    // Notify employee
+    const [empUsers] = await connection.query('SELECT user_id FROM employees WHERE id = ?', [leave.employee_id]);
+    if (empUsers.length > 0 && empUsers[0].user_id) {
+      await createNotification(connection, {
+        userId: empUsers[0].user_id,
+        title: 'Leave Request Approved',
+        message: `Your ${leave.total_days}-day leave request (${leave.start_date} to ${leave.end_date}) has been approved.`,
+        type: 'SUCCESS',
+        category: 'LEAVE',
+        referenceType: 'LEAVE',
+        referenceId: id
+      });
+    }
+
     await connection.commit();
     return success(res, null, 'Leave approved successfully');
   } catch (err) {
@@ -298,6 +333,22 @@ const rejectLeave = async (req, res) => {
       'UPDATE leave_balances SET pending_days = pending_days - ? WHERE employee_id = ? AND leave_type_id = ? AND year = ?',
       [leave.total_days, leave.employee_id, leave.leave_type_id, year]
     );
+
+    // Notify employee
+    const [empUsers] = await connection.query('SELECT user_id FROM employees WHERE id = ?', [leave.employee_id]);
+    if (empUsers.length > 0 && empUsers[0].user_id) {
+      await createNotification(connection, {
+        userId: empUsers[0].user_id,
+        title: 'Leave Request Rejected',
+        message: rejection_reason
+          ? `Your leave request (${leave.start_date} to ${leave.end_date}) was rejected. Reason: ${rejection_reason}`
+          : `Your leave request (${leave.start_date} to ${leave.end_date}) was rejected.`,
+        type: 'ERROR',
+        category: 'LEAVE',
+        referenceType: 'LEAVE',
+        referenceId: id
+      });
+    }
 
     await connection.commit();
     return success(res, null, 'Leave rejected successfully');

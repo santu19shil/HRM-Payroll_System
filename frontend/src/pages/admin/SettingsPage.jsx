@@ -6,13 +6,17 @@ export default function SettingsPage() {
   const [settings, setSettings] = useState({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [logo, setLogo] = useState('');
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => { loadSettings(); }, []);
 
   const loadSettings = async () => {
     try {
       const res = await settingsAPI.get();
-      setSettings(res.data.data.settings || {});
+      const data = res.data.data.settings || {};
+      setSettings(data);
+      setLogo(data.company_logo || '');
     } catch (err) { toast.error('Failed to load settings'); }
     finally { setLoading(false); }
   };
@@ -24,6 +28,23 @@ export default function SettingsPage() {
       toast.success('Settings saved');
     } catch (err) { toast.error('Failed to save'); }
     finally { setSaving(false); }
+  };
+
+  const handleLogo = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('logo', file);
+      const res = await settingsAPI.uploadLogo(formData);
+      setLogo(res.data.data.logo_path);
+      toast.success('Logo uploaded');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to upload logo');
+    } finally {
+      setUploading(false);
+    }
   };
 
   const updateSetting = (key, value) => {
@@ -83,6 +104,22 @@ export default function SettingsPage() {
             <label className="form-label">Company Address</label>
             <textarea className="form-textarea" value={settings.company_address || ''} onChange={e => updateSetting('company_address', e.target.value)} />
           </div>
+        </div>
+
+        <div className="form-group" style={{ marginTop: 8 }}>
+          <label className="form-label">Company Logo</label>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            {logo ? (
+              <img src={logo} alt="Company logo" style={{ height: 56, objectFit: 'contain', border: '1px solid #e5e7eb', borderRadius: 6, padding: 4 }} />
+            ) : (
+              <div style={{ height: 56, width: 120, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px dashed #cbd5e1', borderRadius: 6, color: '#94a3b8', fontSize: 12 }}>No logo</div>
+            )}
+            <label className="btn" style={{ cursor: 'pointer' }}>
+              {uploading ? 'Uploading...' : 'Upload Logo'}
+              <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleLogo} disabled={uploading} />
+            </label>
+          </div>
+          <div style={{ fontSize: 12, color: '#64748b', marginTop: 6 }}>Used on generated payslips (PNG/JPG, max 2MB).</div>
         </div>
 
         <div style={{ marginTop: 20 }}>

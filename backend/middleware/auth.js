@@ -11,6 +11,14 @@ function signRefreshToken(payload) {
   return jwt.sign(payload, JWT_REFRESH_SECRET, { expiresIn: '7d' });
 }
 
+function verifyAccessToken(token) {
+  return jwt.verify(token, JWT_ACCESS_SECRET);
+}
+
+function verifyRefreshToken(token) {
+  return jwt.verify(token, JWT_REFRESH_SECRET);
+}
+
 function requireAuth(req, res, next) {
   const auth = req.headers.authorization || '';
   const [scheme, token] = auth.split(' ');
@@ -19,7 +27,7 @@ function requireAuth(req, res, next) {
   }
 
   try {
-    const decoded = jwt.verify(token, JWT_ACCESS_SECRET);
+    const decoded = verifyAccessToken(token);
     req.user = decoded;
     return next();
   } catch {
@@ -41,6 +49,8 @@ module.exports = {
   requireRole,
   signAccessToken,
   signRefreshToken,
+  verifyAccessToken,
+  verifyRefreshToken,
   JWT_ACCESS_SECRET,
   JWT_REFRESH_SECRET
 };

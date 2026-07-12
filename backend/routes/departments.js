@@ -10,7 +10,7 @@ router.use(requireAuth);
 router.get('/', async (req, res) => {
   const companyId = req.user.companyId;
   const rows = await all('SELECT * FROM departments WHERE companyId = ? ORDER BY createdAt DESC', [companyId]);
-  res.json({ departments: rows });
+  res.json({ success: true, data: rows });
 });
 
 router.post('/', requireRole(['SUPER_ADMIN', 'HR']), async (req, res) => {
@@ -33,7 +33,7 @@ router.post('/', requireRole(['SUPER_ADMIN', 'HR']), async (req, res) => {
     [dept.id, dept.companyId, dept.name, dept.headId, dept.budget, dept.createdAt]
   );
 
-  res.status(201).json({ department: dept });
+  res.status(201).json({ success: true, data: dept });
 });
 
 router.put('/:id', requireRole(['SUPER_ADMIN', 'HR']), async (req, res) => {
@@ -50,7 +50,7 @@ router.put('/:id', requireRole(['SUPER_ADMIN', 'HR']), async (req, res) => {
   );
 
   const updated = await all('SELECT * FROM departments WHERE id = ?', [id]);
-  res.json({ department: updated[0] });
+  res.json({ success: true, data: updated[0] });
 });
 
 router.delete('/:id', requireRole(['SUPER_ADMIN', 'HR']), async (req, res) => {
@@ -60,4 +60,4 @@ router.delete('/:id', requireRole(['SUPER_ADMIN', 'HR']), async (req, res) => {
   res.json({ success: true });
 });
 
-module.exports = { router };
+module.exports = router;

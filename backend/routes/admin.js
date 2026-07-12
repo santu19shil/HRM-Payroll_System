@@ -89,9 +89,12 @@ router.post('/employees', requireAuth, requireRole(['SUPER_ADMIN', 'HR']), async
     );
 
     return res.status(201).json({
-      employee: { id: employeeId, name, email: email || '', department },
-      userId,
-      password
+      success: true,
+      data: {
+        employee: { id: employeeId, name, email: email || '', department },
+        userId,
+        password
+      }
     });
   } catch (e) {
     console.error('Create employee failed:', e);
@@ -99,5 +102,5 @@ router.post('/employees', requireAuth, requireRole(['SUPER_ADMIN', 'HR']), async
   }
 });
 
-module.exports = { router };
+module.exports = router;
 

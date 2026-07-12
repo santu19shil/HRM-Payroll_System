@@ -9,16 +9,25 @@ router.use(requireAuth);
 router.get('/', async (req, res) => {
   const companyId = req.user.companyId;
   const rows = await all('SELECT * FROM designations WHERE companyId = ? ORDER BY createdAt DESC', [companyId]);
-  res.json({ designations: rows });
+  const seen = new Map();
+  for (const row of rows) {
+    if (!seen.has(row.title)) seen.set(row.title, row);
+  }
+  res.json({ success: true, data: Array.from(seen.values()) });
 });
 
 router.post('/', requireRole(['SUPER_ADMIN', 'HR']), async (req, res) => {
   const { departmentId, title, salaryGrade } = req.body;
-  if (!title) return res.status(400).json({ error: 'Title is required' });
+  if (!title) return res.status(400).json({ success: false, message: 'Title is required' });
 
   const companyId = req.user.companyId;
+  const existing = await all('SELECT id FROM designations WHERE companyId = ? AND title = ?', [companyId, title]);
+  if (existing.length) {
+    return res.status(400).json({ success: false, message: 'Designation already exists' });
+  }
+
   const now = new Date().toISOString();
-  
+
   const desig = {
     id: nanoid(),
     companyId,
@@ -33,7 +42,7 @@ router.post('/', requireRole(['SUPER_ADMIN', 'HR']), async (req, res) => {
     [desig.id, desig.companyId, desig.departmentId, desig.title, desig.salaryGrade, desig.createdAt]
   );
 
-  res.status(201).json({ designation: desig });
+  res.status(201).json({ success: true, data: desig });
 });
 
 router.put('/:id', requireRole(['SUPER_ADMIN', 'HR']), async (req, res) => {
@@ -47,7 +56,7 @@ router.put('/:id', requireRole(['SUPER_ADMIN', 'HR']), async (req, res) => {
   );
 
   const updated = await all('SELECT * FROM designations WHERE id = ?', [id]);
-  res.json({ designation: updated[0] });
+  res.json({ success: true, data: updated[0] });
 });
 
 router.delete('/:id', requireRole(['SUPER_ADMIN', 'HR']), async (req, res) => {
@@ -57,4 +66,4 @@ router.delete('/:id', requireRole(['SUPER_ADMIN', 'HR']), async (req, res) => {
   res.json({ success: true });
 });
 
-module.exports = { router };
+module.exports = router;

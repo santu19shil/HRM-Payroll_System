@@ -51,7 +51,7 @@ export default function MyPayroll() {
           <div className="grid-2">
             <div className="form-group">
               <label className="form-label">Basic Salary</label>
-              <div style={{ fontSize: 24, fontWeight: 700, color: '#2563eb' }}>
+              <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--primary)' }}>
                 ₹{parseFloat(salaryStructure.basic_salary || 0).toLocaleString()}
               </div>
             </div>
@@ -71,7 +71,13 @@ export default function MyPayroll() {
                     <tr key={i}>
                       <td>{c.name}</td>
                       <td>₹{parseFloat(c.amount).toLocaleString()}</td>
-                      <td><span className={`badge ${c.type === 'EARNING' ? 'badge-success' : 'badge-danger'}`}>{c.type}</span></td>
+                      <td>
+                        <span className={`badge ${
+                          c.type === 'EARNING' ? 'badge-success' :
+                          c.type === 'DEDUCTION' ? 'badge-danger' :
+                          'badge-info'
+                        }`}>{c.type}</span>
+                      </td>
                     </tr>
                   ))}
                 </tbody>

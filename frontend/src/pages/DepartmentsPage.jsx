@@ -1,12 +1,50 @@
 import React, { useState, useEffect } from 'react';
 import { Building2, Plus, Edit2, Trash2 } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
 
 export default function DepartmentsPage() {
-  const [departments, setDepartments] = useState([
-    { id: '1', name: 'Engineering', head: 'John Doe', budget: '$500,000', count: 45 },
-    { id: '2', name: 'Sales', head: 'Jane Smith', budget: '$200,000', count: 30 },
-    { id: '3', name: 'Marketing', head: 'Alice Johnson', budget: '$150,000', count: 15 },
-  ]);
+  const [departments, setDepartments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const location = useLocation();
+
+  useEffect(() => {
+    let mounted = true;
+
+    (async () => {
+      try {
+        setLoading(true);
+        const token = localStorage.getItem('accessToken');
+        const res = await fetch('http://localhost:5000/api/departments', {
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {})
+          }
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data?.error || 'Failed to load departments');
+        if (!mounted) return;
+        setDepartments(data.data || data.departments || []);
+      } catch (e) {
+        if (!mounted) return;
+        setDepartments([]);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, [location.key]);
+
+
+  if (loading) {
+    return (
+      <div className="loading-page">
+        <div className="loading-spinner"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -45,7 +83,7 @@ export default function DepartmentsPage() {
                 <td className="p-4 text-gray-600">{dept.budget}</td>
                 <td className="p-4">
                   <span className="bg-blue-100 text-blue-700 px-2.5 py-0.5 rounded-full text-xs font-medium">
-                    {dept.count} Members
+                    {dept.employee_count ?? dept.count ?? 0} Members
                   </span>
                 </td>
                 <td className="p-4 flex justify-end gap-3">

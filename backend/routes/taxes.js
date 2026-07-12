@@ -9,7 +9,7 @@ router.use(requireAuth);
 router.get('/', async (req, res) => {
   const companyId = req.user.companyId;
   const rows = await all('SELECT * FROM global_taxes WHERE companyId = ?', [companyId]);
-  res.json({ taxes: rows });
+  res.json({ success: true, data: rows });
 });
 
 router.post('/', requireRole(['SUPER_ADMIN', 'HR']), async (req, res) => {
@@ -31,7 +31,7 @@ router.post('/', requireRole(['SUPER_ADMIN', 'HR']), async (req, res) => {
     [tax.id, tax.companyId, tax.name, tax.rate, tax.type, tax.createdAt]
   );
 
-  res.status(201).json({ tax });
+  res.status(201).json({ success: true, data: tax });
 });
 
 router.delete('/:id', requireRole(['SUPER_ADMIN', 'HR']), async (req, res) => {
@@ -41,4 +41,4 @@ router.delete('/:id', requireRole(['SUPER_ADMIN', 'HR']), async (req, res) => {
   res.json({ success: true });
 });
 
-module.exports = { router };
+module.exports = router;

@@ -25,9 +25,9 @@ router.get('/summary', requireAuth, async (req, res) => {
   );
   if (!run) return res.status(404).json({ error: 'No payroll run found for requested month/year' });
 
-  res.json({ monthKey, totals: JSON.parse(run.totalsJson), payrollRunId: run.runId });
+  res.json({ success: true, data: { monthKey, totals: JSON.parse(run.totalsJson), payrollRunId: run.runId } });
 });
 
-module.exports = { router };
+module.exports = router;
 
 

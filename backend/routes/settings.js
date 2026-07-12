@@ -13,7 +13,8 @@ router.get('/', async (req, res) => {
   if (rows.length === 0) {
     // Return default settings shape if none exist
     return res.json({
-      settings: {
+      success: true,
+      data: {
         currency: 'USD',
         timezone: 'UTC',
         payrollCycle: 'Monthly',
@@ -28,7 +29,7 @@ router.get('/', async (req, res) => {
     settings[row.key] = row.value;
   });
   
-  res.json({ settings });
+  res.json({ success: true, data: settings });
 });
 
 router.post('/', requireRole(['SUPER_ADMIN']), async (req, res) => {
@@ -54,4 +55,4 @@ router.post('/', requireRole(['SUPER_ADMIN']), async (req, res) => {
   res.json({ success: true, message: 'Settings saved' });
 });
 
-module.exports = { router };
+module.exports = router;

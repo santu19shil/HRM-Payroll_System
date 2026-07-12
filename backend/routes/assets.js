@@ -24,13 +24,13 @@ router.get('/', async (req, res) => {
       query += ' AND a.assignedTo = ?';
       params.push(empRows[0].id);
     } else {
-      return res.json({ assets: [] });
+      return res.json({ success: true, data: [] });
     }
   }
 
   query += ' ORDER BY a.createdAt DESC';
   const rows = await all(query, params);
-  res.json({ assets: rows });
+  res.json({ success: true, data: rows });
 });
 
 router.post('/', requireRole(['SUPER_ADMIN', 'HR']), async (req, res) => {
@@ -54,7 +54,7 @@ router.post('/', requireRole(['SUPER_ADMIN', 'HR']), async (req, res) => {
     [asset.id, asset.companyId, asset.name, asset.type, asset.serial, asset.status, asset.assignedTo, asset.createdAt]
   );
 
-  res.status(201).json({ asset });
+  res.status(201).json({ success: true, data: asset });
 });
 
 router.put('/:id', requireRole(['SUPER_ADMIN', 'HR']), async (req, res) => {
@@ -68,7 +68,7 @@ router.put('/:id', requireRole(['SUPER_ADMIN', 'HR']), async (req, res) => {
   );
 
   const updated = await all('SELECT * FROM company_assets WHERE id = ?', [id]);
-  res.json({ asset: updated[0] });
+  res.json({ success: true, data: updated[0] });
 });
 
 router.delete('/:id', requireRole(['SUPER_ADMIN', 'HR']), async (req, res) => {
@@ -78,4 +78,4 @@ router.delete('/:id', requireRole(['SUPER_ADMIN', 'HR']), async (req, res) => {
   res.json({ success: true });
 });
 
-module.exports = { router };
+module.exports = router;

@@ -7,7 +7,8 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
-    "init-db": "node database/init.js"
+    "init-db": "node database/init.js",
+    "migrate": "node database/migrate.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -23,6 +24,7 @@
     "mysql2": "^3.22.6",
     "nanoid": "^3.3.15",
     "nodemailer": "^9.0.3",
-    "pdfkit": "^0.19.1"
+    "pdfkit": "^0.19.1",
+    "sqlite3": "^6.0.1"
   }
 }

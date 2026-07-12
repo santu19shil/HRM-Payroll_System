@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { notificationAPI } from '../../services/api';
+import { notificationAPI, API_BASE_URL } from '../../services/api';
 import toast from 'react-hot-toast';
+
+const fileUrl = (link) => `${API_BASE_URL.replace('/api', '')}${link}`;
 
 export default function MyNotifications() {
   const [notifications, setNotifications] = useState([]);
@@ -65,12 +67,23 @@ export default function MyNotifications() {
             <div style={{ flex: 1 }}>
               <div style={{ fontWeight: n.is_read ? 400 : 600, marginBottom: 4 }}>{n.title}</div>
               <div style={{ fontSize: 13, color: '#64748b' }}>{n.message}</div>
+              {n.link && (
+                <a
+                  href={fileUrl(n.link)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="notif-attachment"
+                >
+                  📎 {decodeURIComponent(n.link.split('/').pop() || 'Attachment')}
+                  <span className="notif-attachment-open">View</span>
+                </a>
+              )}
               <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>
                 {new Date(n.created_at).toLocaleString()}
               </div>
             </div>
             {!n.is_read && (
-              <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#2563eb', flexShrink: 0, marginTop: 6 }}></span>
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--primary)', flexShrink: 0, marginTop: 6 }}></span>
             )}
           </div>
         ))}
