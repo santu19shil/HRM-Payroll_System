@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { documentAPI, notificationAPI, API_BASE_URL } from '../../services/api';
-import ActionMenu from '../../components/ActionMenuDebug';
+import ActionMenu from '../../components/ActionMenu';
 import toast from 'react-hot-toast';
 
 export default function AdminDocuments() {
@@ -142,9 +142,7 @@ export default function AdminDocuments() {
                           a.click();
                         } },
                         ...(doc.status !== 'Verified' ? [{ label: 'Accept', onClick: () => handleVerify(doc.id) }] : []),
-                        ...(doc.status !== 'Rejected' ? [{ label: 'Reject', onClick: () => openReject(doc.id) }] : []),
-                        { label: 'Edit', onClick: () => openEdit(doc) },
-                        { label: 'Delete', danger: true, onClick: () => handleDelete(doc.id) }
+                        ...(doc.status !== 'Rejected' ? [{ label: 'Reject', onClick: () => openReject(doc.id) }] : [])
                       ]}
                     />
                   </td>
