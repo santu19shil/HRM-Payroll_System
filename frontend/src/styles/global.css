@@ -1,10 +1,10 @@
 @import "tailwindcss";
 
 :root {
-  --primary: #6366f1;
-  --primary-dark: #4f46e5;
+  --primary: #4f46e5;
+  --primary-dark: #3730a3;
   --primary-light: #eef2ff;
-  --primary-rgb: 99, 102, 241;
+  --primary-rgb: 79, 70, 229;
   --accent: #06b6d4;
   --accent-rgb: 6, 182, 212;
   --secondary: #64748b;
@@ -15,21 +15,21 @@
   --danger: #ef4444;
   --danger-light: #fee2e2;
   --info: #0ea5e9;
-  --background: #f3f5fb;
+  --background: #f8fafc;
   --surface: #ffffff;
   --text: #0f172a;
-  --text-secondary: #64748b;
+  --text-secondary: #475569;
   --muted: #94a3b8;
-  --border: #e8ecf3;
-  --sidebar-bg: #1e1b4b;
-  --sidebar-bg-2: #312e81;
-  --sidebar-text: #c7d2fe;
-  --sidebar-active: #818cf8;
-  --sidebar-hover: rgba(255, 255, 255, 0.08);
+  --border: #e2e8f0;
+  --sidebar-bg: #0f172a;
+  --sidebar-bg-2: #1e293b;
+  --sidebar-text: #cbd5e1;
+  --sidebar-active: #38bdf8;
+  --sidebar-hover: rgba(255, 255, 255, 0.06);
   --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.04), 0 1px 3px rgba(15, 23, 42, 0.06);
   --shadow: 0 6px 22px rgba(15, 23, 42, 0.07), 0 2px 6px rgba(15, 23, 42, 0.04);
   --shadow-lg: 0 18px 50px rgba(15, 23, 42, 0.14);
-  --radius: 18px;
+  --radius: 16px;
   --radius-sm: 12px;
   --ease: cubic-bezier(0.16, 1, 0.3, 1);
   --dur: 0.4s;
@@ -115,8 +115,7 @@ a { color: inherit; }
 
 .card { animation: fadeInUp 0.5s var(--ease) both; }
 .card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-lg);
+  border-color: rgba(79, 70, 229, 0.25);
 }
 
 /* Staggered dashboard entrance */
@@ -143,7 +142,7 @@ a { color: inherit; }
    ============================================ */
 
 .sidebar {
-  width: 270px;
+  width: 260px;
   background: linear-gradient(180deg, var(--sidebar-bg) 0%, var(--sidebar-bg-2) 100%);
   color: var(--sidebar-text);
   position: fixed;
@@ -154,8 +153,7 @@ a { color: inherit; }
   z-index: 100;
   display: flex;
   flex-direction: column;
-  border-right: 1px solid rgba(255, 255, 255, 0.05);
-  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.25);
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .sidebar-brand {
@@ -180,7 +178,7 @@ a { color: inherit; }
 }
 
 .sidebar-brand h2 {
-  color: #fff;
+  color: #f1f5f9;
   font-size: 16px;
   font-weight: 700;
   letter-spacing: 0.3px;
@@ -203,8 +201,8 @@ a { color: inherit; }
   padding: 14px 24px 6px;
   font-size: 10px;
   text-transform: uppercase;
-  letter-spacing: 1.4px;
-  color: rgba(255, 255, 255, 0.4);
+  letter-spacing: 0.12em;
+  color: rgba(148, 163, 184, 0.65);
   font-weight: 700;
 }
 
@@ -223,17 +221,25 @@ a { color: inherit; }
   position: relative;
 }
 
+.sidebar-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sidebar-label { flex: 1; }
+
 .sidebar-link:hover {
   background: var(--sidebar-hover);
-  color: #fff;
+  color: #e2e8f0;
   transform: translateX(2px);
 }
 
 .sidebar-link.active {
-  background: linear-gradient(90deg, rgba(var(--primary-rgb), 0.22), rgba(var(--primary-rgb), 0.06));
-  color: #fff;
+  background: rgba(56, 189, 248, 0.12);
+  color: #38bdf8;
   font-weight: 600;
-  box-shadow: inset 0 0 0 1px rgba(var(--primary-rgb), 0.25);
+  box-shadow: inset 0 0 0 1px rgba(56, 189, 248, 0.18);
 }
 
 .sidebar-link.active::before {
@@ -246,14 +252,13 @@ a { color: inherit; }
   height: 22px;
   border-radius: 0 4px 4px 0;
   background: var(--sidebar-active);
-  box-shadow: 0 0 12px rgba(var(--primary-rgb), 0.8);
 }
 
 .sidebar-footer {
   padding: 16px 24px;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.3);
+  color: rgba(148, 163, 184, 0.6);
 }
 
 .nav-badge {
@@ -322,7 +327,7 @@ a { color: inherit; }
 .topbar-search input:focus {
   border-color: var(--primary);
   background: #fff;
-  box-shadow: 0 0 0 4px rgba(var(--primary-rgb), 0.12);
+  box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.10);
 }
 
 .topbar-avatar {
@@ -345,17 +350,7 @@ a { color: inherit; }
   font-size: 22px;
   font-weight: 700;
   color: var(--text);
-  letter-spacing: -0.3px;
-}
-
-.topbar-title::after {
-  content: '';
-  display: block;
-  width: 36px;
-  height: 3px;
-  margin-top: 4px;
-  border-radius: 3px;
-  background: linear-gradient(90deg, var(--primary), #0ea5e9);
+  letter-spacing: -0.01em;
 }
 
 .role-pill {
@@ -438,8 +433,8 @@ a { color: inherit; }
 }
 
 .stat-card:hover {
-  transform: translateY(-3px);
-  box-shadow: var(--shadow-lg);
+  border-color: rgba(79, 70, 229, 0.25);
+  box-shadow: var(--shadow);
 }
 
 .stat-icon {
@@ -451,22 +446,22 @@ a { color: inherit; }
   justify-content: center;
   font-size: 22px;
   flex-shrink: 0;
-  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.18);
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.18);
   transition: transform var(--dur) var(--ease);
 }
 
 .stat-card:hover .stat-icon { transform: scale(1.08) rotate(-4deg); }
 
-.stat-icon.blue { background: linear-gradient(135deg, #6366f1, #818cf8); color: #fff; }
-.stat-icon.green { background: linear-gradient(135deg, #10b981, #34d399); color: #fff; }
-.stat-icon.yellow { background: linear-gradient(135deg, #f59e0b, #fbbf24); color: #fff; }
-.stat-icon.red { background: linear-gradient(135deg, #ef4444, #f87171); color: #fff; }
-.stat-icon.purple { background: linear-gradient(135deg, #8b5cf6, #a78bfa); color: #fff; }
-.stat-icon.indigo { background: linear-gradient(135deg, var(--primary), #8b5cf6); color: #fff; }
+.stat-icon.blue { background: #eef2ff; color: #4f46e5; }
+.stat-icon.green { background: #ecfdf5; color: #047857; }
+.stat-icon.yellow { background: #fffbeb; color: #b45309; }
+.stat-icon.red { background: #fef2f2; color: #b91c1c; }
+.stat-icon.purple { background: #f5f3ff; color: #6d28d9; }
+.stat-icon.indigo { background: #eef2ff; color: #4338ca; }
 
 .stat-content { flex: 1; min-width: 0; }
-.stat-label { font-size: 13px; color: var(--text-secondary); margin-bottom: 6px; font-weight: 500; }
-.stat-value { font-size: 28px; font-weight: 800; color: var(--text); line-height: 1.1; letter-spacing: -0.5px; }
+.stat-label { font-size: 13px; color: var(--text-secondary); margin-bottom: 8px; font-weight: 600; }
+.stat-value { font-size: 28px; font-weight: 800; color: var(--text); line-height: 1.1; letter-spacing: -0.4px; }
 .stat-change { font-size: 12px; margin-top: 6px; font-weight: 600; }
 .stat-change.positive { color: var(--success); }
 .stat-change.negative { color: var(--danger); }
@@ -598,6 +593,11 @@ th {
   border-bottom: 1px solid var(--border);
   white-space: nowrap;
 }
+
+.comp { padding: 0; }
+.comp > .table { margin-top: 0; border-top: 0; border-radius: 20px; overflow: hidden; box-shadow: var(--shadow); }
+.table.compact th, .table.compact td { padding: 12px 16px; font-size: 13px; }
+.table.compact thead th { background: #f8fafc; }
 
 td {
   padding: 14px 16px;
@@ -841,7 +841,9 @@ tbody tr:hover td { background: linear-gradient(90deg, rgba(var(--primary-rgb), 
   left: 14px;
   top: 50%;
   transform: translateY(-50%);
-  color: var(--text-secondary);
+  color: var(--muted);
+  display: inline-flex;
+  align-items: center;
 }
 
 /* ============================================
@@ -865,11 +867,11 @@ tbody tr:hover td { background: linear-gradient(90deg, rgba(var(--primary-rgb), 
    ============================================ */
 
 .attendance-card {
-  background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
+  background: #0f172a;
   border-radius: var(--radius);
   padding: 32px;
-  color: #fff;
-  box-shadow: var(--shadow-lg);
+  color: #f1f5f9;
+  box-shadow: var(--shadow);
 }
 
 .attendance-time {
@@ -878,11 +880,12 @@ tbody tr:hover td { background: linear-gradient(90deg, rgba(var(--primary-rgb), 
   line-height: 1;
   margin-bottom: 4px;
   letter-spacing: -1px;
+  color: #e2e8f0;
 }
 
 .attendance-date {
   font-size: 16px;
-  color: #94a3b8;
+  color: #cbd5e1;
   margin-bottom: 24px;
 }
 
@@ -1290,8 +1293,8 @@ tbody tr:hover td { background: linear-gradient(90deg, rgba(var(--primary-rgb), 
   display: flex;
   align-items: center;
   justify-content: center;
-  background: radial-gradient(1200px 600px at 80% -10%, rgba(var(--primary-rgb), 0.3), transparent 55%),
-              linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
+  background: radial-gradient(1200px 600px at 80% -10%, rgba(var(--primary-rgb), 0.18), transparent 55%),
+              linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
   padding: 20px;
 }
 

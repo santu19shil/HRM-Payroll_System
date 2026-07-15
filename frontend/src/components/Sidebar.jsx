@@ -2,36 +2,38 @@ import React, { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { notificationAPI } from '../services/api';
+import { LayoutDashboard, Users, Building2, Briefcase, Clock, CalendarDays, Wallet, Plane, FileText, Megaphone, Settings, UserCircle, LogOut } from 'lucide-react';
 
 const adminLinks = [
   { section: 'Main', items: [
-    { to: '/admin/dashboard', label: 'Dashboard', icon: '📊' },
-    { to: '/admin/employees', label: 'Employees', icon: '👥' },
-    { to: '/admin/departments', label: 'Departments', icon: '🏢' },
-    { to: '/admin/designations', label: 'Designations', icon: '💼' },
+    { to: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { to: '/admin/employees', label: 'Employees', icon: Users },
+    { to: '/admin/departments', label: 'Departments', icon: Building2 },
+    { to: '/admin/designations', label: 'Designations', icon: Briefcase },
   ]},
   { section: 'Operations', items: [
-    { to: '/admin/attendance', label: 'Attendance', icon: '⏰' },
-    { to: '/admin/leaves', label: 'Leave Management', icon: '📅', badge: 'leaves' },
-    { to: '/admin/payroll', label: 'Payroll', icon: '💰' },
-    { to: '/admin/holidays', label: 'Holidays', icon: '🎉' },
-    { to: '/admin/documents', label: 'Documents', icon: '📄', badge: 'documents' },
-    { to: '/admin/notices', label: 'Notices', icon: '📢' },
+    { to: '/admin/attendance', label: 'Attendance', icon: Clock },
+    { to: '/admin/leaves', label: 'Leave Management', icon: CalendarDays, badge: 'leaves' },
+    { to: '/admin/payroll', label: 'Payroll', icon: Wallet },
+    { to: '/admin/holidays', label: 'Holidays', icon: Plane },
+    { to: '/admin/documents', label: 'Documents', icon: FileText, badge: 'documents' },
+    { to: '/admin/notices', label: 'Notices', icon: Megaphone },
   ]},
-  { section: 'System', items: [
-    { to: '/admin/settings', label: 'Settings', icon: '⚙️' },
-  ]}
+  { section: 'Account', items: [
+      { to: '#logout', label: 'Logout', icon: LogOut, action: true },
+    ]
+  }
 ];
 
 const employeeLinks = [
   { section: 'Main', items: [
-    { to: '/employee/dashboard', label: 'Dashboard', icon: '📊' },
-    { to: '/employee/profile', label: 'My Profile', icon: '👤' },
-    { to: '/employee/attendance', label: 'Attendance', icon: '⏰' },
-    { to: '/employee/leaves', label: 'Leave Requests', icon: '📅', badge: 'leaves' },
-    { to: '/employee/payroll', label: 'Payslips', icon: '💰' },
-    { to: '/employee/documents', label: 'Documents', icon: '📄', badge: 'documents' },
-    { to: '/employee/notifications', label: 'Notifications', icon: '🔔', badge: 'notifications' },
+    { to: '/employee/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { to: '/employee/profile', label: 'My Profile', icon: UserCircle },
+    { to: '/employee/attendance', label: 'Attendance', icon: Clock },
+    { to: '/employee/leaves', label: 'Leave Requests', icon: CalendarDays, badge: 'leaves' },
+    { to: '/employee/payroll', label: 'Payslips', icon: Wallet },
+    { to: '/employee/documents', label: 'Documents', icon: FileText, badge: 'documents' },
+    { to: '/employee/notifications', label: 'Notifications', icon: Megaphone, badge: 'notifications' },
   ]}
 ];
 
@@ -65,10 +67,21 @@ export default function Sidebar() {
     return val > 0 ? <span className="nav-badge">{val}</span> : null;
   };
 
+  const handleNavClick = async (link) => {
+    if (!link.action) return;
+    try {
+      await logout();
+    } finally {
+      window.location.href = '/login';
+    }
+  };
+
   return (
     <aside className="sidebar">
       <div className="sidebar-brand">
-        <div className="sidebar-logo">💼</div>
+        <div className="sidebar-logo">
+          <Briefcase size={20} color="#fff" strokeWidth={2.2} />
+        </div>
         <div>
           <h2>Enterprise HRMS</h2>
           <p>Payroll Management System</p>
@@ -78,21 +91,27 @@ export default function Sidebar() {
         {links.map((section, idx) => (
           <div key={idx}>
             <div className="sidebar-section">{section.section}</div>
-            {section.items.map((link) => (
-              <NavLink
-                key={link.to}
-                to={link.to}
-                className={({ isActive }) =>
-                  `sidebar-link${isActive ? ' active' : ''}`
-                }
-              >
-                <span>{link.icon}</span>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                  {link.label}
+            {section.items.map((link) => {
+              const Icon = link.icon;
+              return link.action ? (
+                <button key={link.to} onClick={() => handleNavClick(link)} className="sidebar-link" type="button">
+                  <span className="sidebar-icon"><Icon size={18} /></span>
+                  <span className="sidebar-label">{link.label}</span>
+                </button>
+              ) : (
+                <NavLink
+                  key={link.to}
+                  to={link.to}
+                  className={({ isActive }) =>
+                    `sidebar-link${isActive ? ' active' : ''}`
+                  }
+                >
+                  <span className="sidebar-icon"><Icon size={18} /></span>
+                  <span className="sidebar-label">{link.label}</span>
                   {badgeFor(link)}
-                </span>
-              </NavLink>
-            ))}
+                </NavLink>
+              );
+            })}
           </div>
         ))}
       </nav>
