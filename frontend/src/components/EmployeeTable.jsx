@@ -7,9 +7,8 @@ function Money({ value }) {
 
 export default function EmployeeTable({ employees, onEdit, onDelete }) {
   return (
-    <div className="card">
-      <h2>Employees</h2>
-      <table className="table">
+    <div className="card comp">
+      <table className="table compact">
         <thead>
           <tr>
             <th>Name</th>
@@ -32,7 +31,7 @@ export default function EmployeeTable({ employees, onEdit, onDelete }) {
               const net = Number(e.baseSalaryMonthly || 0) + Number(e.bonusesMonthly || 0) - Number(e.deductionsMonthly || 0);
               return (
                 <tr key={e.id}>
-                  <td style={{ fontWeight: 800 }}>{e.name}</td>
+                  <td style={{ fontWeight: 700 }}>{e.name}</td>
                   <td>{e.department}</td>
                   <td style={{ color: 'var(--muted)' }}>{e.email}</td>
                   <td><Money value={e.baseSalaryMonthly} /></td>

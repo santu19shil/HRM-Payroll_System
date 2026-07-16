@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { Search } from 'lucide-react';
 
 export default function TopBar() {
   const { user, logout } = useAuth();
@@ -48,7 +49,7 @@ export default function TopBar() {
       <div className="topbar-left">
         <h1 className="topbar-title">{getPageTitle()}</h1>
         <div className="topbar-search">
-          <span className="search-bar-icon">🔍</span>
+          <span className="search-bar-icon"><Search size={16} color="var(--muted)" /></span>
           <input placeholder="Search employees, documents, payroll..." />
         </div>
       </div>
