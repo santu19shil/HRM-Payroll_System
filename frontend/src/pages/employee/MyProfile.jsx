@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { employeeAPI } from '../../services/api';
+import { employeeAPI, API_BASE_URL } from '../../services/api';
 import toast from 'react-hot-toast';
 
 export default function MyProfile() {
@@ -8,6 +8,8 @@ export default function MyProfile() {
   const [error, setError] = useState(false);
   const [editing, setEditing] = useState(false);
   const [formData, setFormData] = useState({});
+  const [uploadingPic, setUploadingPic] = useState(false);
+  const [previewPic, setPreviewPic] = useState(null);
 
   useEffect(() => { loadProfile(); }, []);
 
@@ -47,6 +49,31 @@ export default function MyProfile() {
     }
   };
 
+  const handleProfilePicUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file');
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error('Image must be less than 2MB');
+      return;
+    }
+    const formData = new FormData();
+    formData.append('profile_picture', file);
+    setUploadingPic(true);
+    try {
+      await employeeAPI.uploadProfilePicture(formData);
+      toast.success('Profile picture updated');
+      loadProfile();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to upload profile picture');
+    } finally {
+      setUploadingPic(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="loading-page">
@@ -78,10 +105,64 @@ export default function MyProfile() {
   const department = profile.department_name || profile.department || 'N/A';
   const designation = profile.designation_title || profile.designationId || 'N/A';
 
+  const profilePicUrl = profile.profile_picture
+    ? `${API_BASE_URL.replace('/api', '')}${profile.profile_picture}`
+    : profile.profile_picture_url || profile.profilePictureUrl || null;
+
   return (
     <div>
       <div className="profile-header">
-        <div className="profile-avatar-placeholder">{initials}</div>
+        <div style={{ position: 'relative', display: 'inline-block' }}>
+          {profilePicUrl ? (
+            <img
+              src={profilePicUrl}
+              alt={fullName}
+              onClick={() => setPreviewPic(profilePicUrl)}
+              style={{ width: 84, height: 84, borderRadius: '50%', objectFit: 'cover', border: '3px solid var(--primary-light)', cursor: 'pointer' }}
+            />
+          ) : (
+            <div
+              className="profile-avatar-placeholder"
+              style={{ cursor: 'default' }}
+            >
+              {initials}
+            </div>
+          )}
+          <label
+            htmlFor="profile-pic-upload"
+            style={{
+              position: 'absolute',
+              bottom: 0,
+              right: 0,
+              width: 28,
+              height: 28,
+              borderRadius: '50%',
+              background: 'var(--primary)',
+              color: '#fff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: 14,
+              cursor: 'pointer',
+              border: '2px solid #fff',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+              transition: 'transform 0.15s'
+            }}
+            title="Change profile picture"
+            onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
+            onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+          >
+            {uploadingPic ? '⏳' : '📷'}
+          </label>
+          <input
+            id="profile-pic-upload"
+            type="file"
+            accept="image/*"
+            style={{ display: 'none' }}
+            onChange={handleProfilePicUpload}
+            disabled={uploadingPic}
+          />
+        </div>
         <div className="profile-info">
           <div className="profile-name">{fullName}</div>
           <div className="profile-role">{designation} • {department}</div>
@@ -220,6 +301,69 @@ export default function MyProfile() {
       {editing && (
         <div style={{ marginTop: 16, textAlign: 'right' }}>
           <button className="btn btn-primary" onClick={handleSave}>Save Changes</button>
+        </div>
+      )}
+
+      {previewPic && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0, left: 0, right: 0, bottom: 0,
+            background: 'rgba(15, 23, 42, 0.7)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 999999,
+            padding: 20
+          }}
+          onClick={() => setPreviewPic(null)}
+        >
+          <div
+            style={{
+              position: 'relative',
+              display: 'inline-block',
+              maxWidth: '90vw',
+              maxHeight: '90vh'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <img
+              src={previewPic}
+              alt={fullName}
+              style={{
+                display: 'block',
+                maxWidth: '85vw',
+                maxHeight: '85vh',
+                borderRadius: 12,
+                boxShadow: '0 20px 60px rgba(0,0,0,0.4)'
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => setPreviewPic(null)}
+              style={{
+                position: 'absolute',
+                top: -16,
+                right: -16,
+                width: 36,
+                height: 36,
+                borderRadius: '50%',
+                border: '2px solid #fff',
+                background: '#ef4444',
+                color: '#fff',
+                fontSize: 18,
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 2px 12px rgba(0,0,0,0.3)',
+                lineHeight: 1
+              }}
+            >
+              ✕
+            </button>
+          </div>
         </div>
       )}
     </div>

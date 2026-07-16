@@ -1,9 +1,9 @@
 import React, { useState, useRef, useLayoutEffect, useEffect } from 'react';
 
 /**
- * Reusable 3-dot action menu that renders as a fixed overlay positioned next
- * to the trigger button. It automatically flips above the button when there is
- * not enough room below, so the menu never forces the page to scroll.
+ * 3-dot/Action menu floating above the whole UI (position: fixed).
+ * This avoids table overflow clipping and lets it render even when
+ * the user must scroll.
  */
 export default function ActionMenu({ items, label = '⋮', title = 'Actions', menuWidth = 170 }) {
   const [open, setOpen] = useState(false);
@@ -19,6 +19,7 @@ export default function ActionMenu({ items, label = '⋮', title = 'Actions', me
     const rect = btn.getBoundingClientRect();
     const spaceBelow = window.innerHeight - rect.bottom;
     const flipUp = spaceBelow < MENU_HEIGHT_ESTIMATE + 8;
+
     setCoords({
       top: flipUp ? rect.top : rect.bottom,
       left: Math.min(rect.right, window.innerWidth - menuWidth - 8),
@@ -27,41 +28,64 @@ export default function ActionMenu({ items, label = '⋮', title = 'Actions', me
   };
 
   const toggle = (e) => {
-    // Prevent clicks inside the table row from swallowing this toggle
     e?.preventDefault?.();
     e?.stopPropagation?.();
-    if (!open) place();
+
+    // Compute position first so menu has correct coordinates before render.
+    place();
+
+    // Toggle open/close.
     setOpen((o) => !o);
   };
 
   useLayoutEffect(() => {
     if (open) place();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   useEffect(() => {
     if (!open) return;
+
     const onDocClick = (e) => {
-      if (menuRef.current && !menuRef.current.contains(e.target) && !btnRef.current.contains(e.target)) {
-        setOpen(false);
-      }
+      const target = e.target;
+
+      // If click happens inside the menu or on the menu button, keep open.
+      if (menuRef.current && menuRef.current.contains(target)) return;
+      if (btnRef.current && btnRef.current.contains(target)) return;
+
+      // If click is on overlay or inside modal, don't immediately close.
+      // (Consumers use overlay click handlers to dismiss modals.)
+      const modalOverlay = target?.closest?.('.modal-overlay');
+      const modal = target?.closest?.('.modal');
+      if (modalOverlay || modal) return;
+
+      setOpen(false);
     };
-    const onKey = (e) => { if (e.key === 'Escape') setOpen(false); };
+
+    const onKey = (e) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+
     const onScroll = () => place();
+
     document.addEventListener('mousedown', onDocClick);
     document.addEventListener('keydown', onKey);
-    window.addEventListener('resize', onScroll);
     window.addEventListener('scroll', onScroll, true);
+    window.addEventListener('resize', onScroll);
+
     return () => {
       document.removeEventListener('mousedown', onDocClick);
       document.removeEventListener('keydown', onKey);
-      window.removeEventListener('resize', onScroll);
       window.removeEventListener('scroll', onScroll, true);
+      window.removeEventListener('resize', onScroll);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   const menuStyle = {
     position: 'fixed',
-    zIndex: 1000,
+    // Higher than modal-overlay (z-index: 1000) and sidebar/topbar.
+    zIndex: 2000000,
     minWidth: menuWidth,
     background: '#fff',
     border: '1px solid #e5e7eb',
@@ -75,9 +99,17 @@ export default function ActionMenu({ items, label = '⋮', title = 'Actions', me
 
   return (
     <>
-      <button type="button" ref={btnRef} className="btn btn-sm" onClick={toggle} title={title} aria-label={title}>
+      <button
+        type="button"
+        ref={btnRef}
+        className="btn btn-sm"
+        onClick={toggle}
+        title={title}
+        aria-label={title}
+      >
         {label}
       </button>
+
       {open && (
         <div ref={menuRef} style={menuStyle}>
           {items.map((it, i) => (
@@ -86,8 +118,8 @@ export default function ActionMenu({ items, label = '⋮', title = 'Actions', me
               role="button"
               tabIndex={0}
               onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
+                e?.preventDefault?.();
+                e?.stopPropagation?.();
                 setOpen(false);
                 it.onClick && it.onClick(e);
               }}
@@ -106,8 +138,12 @@ export default function ActionMenu({ items, label = '⋮', title = 'Actions', me
                 whiteSpace: 'nowrap',
                 color: it.danger ? '#ef4444' : '#1f2937'
               }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = '#f3f4f6'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = '#f3f4f6';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent';
+              }}
             >
               {it.label}
             </div>
@@ -117,3 +153,4 @@ export default function ActionMenu({ items, label = '⋮', title = 'Actions', me
     </>
   );
 }
+

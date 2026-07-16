@@ -18,6 +18,7 @@ export default function AdminEmployeeProfile({ employeeId, onClose }) {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [previewPic, setPreviewPic] = useState(null);
 
   const [formData, setFormData] = useState({});
   const isFormDisabled = true; // per requirement: HR can view only
@@ -76,15 +77,21 @@ export default function AdminEmployeeProfile({ employeeId, onClose }) {
   return (
     <div style={{ minHeight: 300 }}>
       <div className="profile-header">
-        <div className="profile-avatar">
+        <div style={{ position: 'relative' }}>
           {profile.profile_picture ? (
             <img
               src={`http://localhost:5000${profile.profile_picture}`}
               alt="Profile"
-              style={{ width: 54, height: 54, borderRadius: '50%', objectFit: 'cover' }}
+              onClick={() => setPreviewPic(`http://localhost:5000${profile.profile_picture}`)}
+              style={{ width: 84, height: 84, borderRadius: '50%', objectFit: 'cover', border: '3px solid var(--primary-light)', cursor: 'pointer' }}
             />
           ) : (
-            <div className="profile-avatar-placeholder">{initials}</div>
+            <div
+              className="profile-avatar-placeholder"
+              style={{ width: 84, height: 84, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32, fontWeight: 700, background: 'linear-gradient(135deg, var(--primary-light), #e0e7ff)', color: 'var(--primary)' }}
+            >
+              {initials}
+            </div>
           )}
         </div>
 
@@ -231,6 +238,69 @@ export default function AdminEmployeeProfile({ employeeId, onClose }) {
           </div>
         </div>
       </div>
+
+      {previewPic && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0, left: 0, right: 0, bottom: 0,
+            background: 'rgba(15, 23, 42, 0.7)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 999999,
+            padding: 20
+          }}
+          onClick={() => setPreviewPic(null)}
+        >
+          <div
+            style={{
+              position: 'relative',
+              display: 'inline-block',
+              maxWidth: '90vw',
+              maxHeight: '90vh'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <img
+              src={previewPic}
+              alt="Profile"
+              style={{
+                display: 'block',
+                maxWidth: '85vw',
+                maxHeight: '85vh',
+                borderRadius: 12,
+                boxShadow: '0 20px 60px rgba(0,0,0,0.4)'
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => setPreviewPic(null)}
+              style={{
+                position: 'absolute',
+                top: -16,
+                right: -16,
+                width: 36,
+                height: 36,
+                borderRadius: '50%',
+                border: '2px solid #fff',
+                background: '#ef4444',
+                color: '#fff',
+                fontSize: 18,
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 2px 12px rgba(0,0,0,0.3)',
+                lineHeight: 1
+              }}
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -23,6 +23,9 @@ export default function ProtectedRoute({ children, requiredRole }) {
   }
 
   if (!isAuthenticated) {
+    // Keep debug visibility; if this triggers, AuthContext couldn't validate the token via /auth/me
+    // eslint-disable-next-line no-console
+    console.log('[ProtectedRoute] not authenticated, redirecting to /login', { locationPath: location?.pathname });
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
@@ -32,7 +35,18 @@ export default function ProtectedRoute({ children, requiredRole }) {
   // Optional role check (used by App.jsx)
   if (requiredRole) {
     const userRole = user?.role || user?.role_name;
-    if (!userRole || userRole !== requiredRole) {
+
+    // Normalize for common backend variants (case/whitespace)
+    const normalize = (r) => (r ?? '').toString().trim().toUpperCase();
+    const expected = normalize(requiredRole);
+    const actual = normalize(userRole);
+
+    // Helpful debug log (keep until issue resolved)
+    // eslint-disable-next-line no-console
+    console.log('[ProtectedRoute] role check', { expected: requiredRole, actual: userRole, actualNormalized: actual });
+
+    if (!actual || actual !== expected) {
+      // If you see this redirect in the console log above, the user role stored in token differs.
       return <Navigate to="/login" replace />;
     }
   }
