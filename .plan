@@ -1,0 +1,53 @@
+# Plan: Professional Animated Landing Page + UI Polish
+
+## Context
+The app is a React + Vite + Tailwind + framer-motion HR/payroll system with a consistent
+neo-brutalist design system (lime `--primary #C9FF3D`, hard offset shadows `--shadow`,
+sharp radii, dark background). Currently `/` redirects straight to `/login` — there is no
+public landing/marketing page. `framer-motion` is already installed.
+
+Goal: add a professional, animated landing page shown BEFORE login that showcases features
+one-by-one with cool sliding animations, plus a few polish improvements that make the whole
+app look more professional — all while staying consistent with the existing design tokens.
+
+## Steps
+
+### 1. Create animated Landing page
+- New file: `frontend/src/pages/LandingPage.jsx`
+- A full-screen, scroll-driven marketing page built with `framer-motion` (`motion`, `useScroll`,
+  `useTransform`, `AnimatePresence`):
+  - **Hero**: big headline "Enterprise HRMS", animated gradient/dotted background, CTA buttons
+    ("Get Started" -> /login, "Watch Demo"). Staggered entrance.
+  - **Feature showcase**: features revealed one-by-one with sliding/scroll animations as the
+    user scrolls (payroll, attendance, leaves, documents, notices). Each feature slides in from
+    alternating sides with the neo-brutalist card style (border-strong + offset shadow).
+  - **Stats band**: animated count-up numbers (employees managed, payroll processed, etc.).
+  - **How it works / steps** section with sliding steps.
+  - **Testimonial / CTA** section.
+  - **Footer** with brand.
+- Use existing CSS variables (var(--primary), var(--surface), var(--shadow), var(--border-strong),
+  var(--radius)) so it matches the app. Add a small landing-specific stylesheet block in global.css.
+- Respect `prefers-reduced-motion`.
+
+### 2. Route the landing page
+- In `frontend/src/App.jsx`: change `/` to render `<LandingPage />` instead of redirecting to
+  `/login`. Keep `/login` and other routes intact. Landing "Sign In" button navigates to /login.
+
+### 3. UI polish improvements (consistent with design system)
+- Add reusable landing styles to `frontend/src/styles/global.css`: `.landing-*`, animated
+  background grid, gradient text utility, scroll-reveal helpers.
+- Improve the Login page slightly: give it the same polished hero/feature vibe by adding a
+  side brand panel (split-screen) so it no longer feels bare. Keep it functional.
+- Add subtle scroll-reveal wrapper component `frontend/src/components/Reveal.jsx` (motion-based)
+  for reuse across pages.
+
+## Files
+- Add: `frontend/src/pages/LandingPage.jsx`
+- Add: `frontend/src/components/Reveal.jsx`
+- Edit: `frontend/src/App.jsx` (route `/`)
+- Edit: `frontend/src/styles/global.css` (landing styles + background)
+- Edit: `frontend/src/pages/LoginPage.jsx` (split-screen brand panel) — optional polish
+
+## Verification
+- `cd frontend && npm run build` to ensure it compiles.
+- `npm run dev` and visually confirm landing page animations and that /login still works.

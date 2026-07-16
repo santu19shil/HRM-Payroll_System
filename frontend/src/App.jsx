@@ -6,7 +6,9 @@ import { Toaster } from 'react-hot-toast';
 // Layout
 import DashboardLayout from './components/DashboardLayout';
 
-// Auth Pages
+// Landing + Auth Pages
+import LandingPage from './pages/LandingPage';
+import PreviewPage from './pages/PreviewPage';
 import LoginPage from './pages/LoginPage';
 import ChangePasswordPage from './pages/ChangePasswordPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
@@ -78,9 +80,9 @@ export default function App() {
             <Route path="/employee/notifications" element={<MyNotifications />} />
           </Route>
 
-          {/* Default Redirect */}
-          <Route path="/" element={<Navigate to="/login" replace />} />
-          <Route path="*" element={<Navigate to="/login" replace />} />
+          {/* Landing + Preview (no login) */}
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/preview" element={<PreviewPage />} />
         </Routes>
       </AuthProvider>
     </Router>

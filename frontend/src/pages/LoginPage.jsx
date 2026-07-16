@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
+import { Briefcase, ShieldCheck, Wallet, Clock } from 'lucide-react';
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -52,11 +53,29 @@ export default function LoginPage() {
 
   return (
     <div className="auth-page">
-      <div className="auth-card">
-        <div className="auth-logo">
-          <h1>Enterprise HRMS</h1>
-          <p>Payroll Management System</p>
-        </div>
+      <div className="auth-split">
+        <aside className="auth-aside">
+          <Link to="/" className="auth-aside-brand">
+            <span className="landing-brand-logo"><Briefcase size={20} color="#fff" strokeWidth={2.4} /></span>
+            <span>Enterprise HRMS</span>
+          </Link>
+          <div className="auth-aside-content">
+            <h2>Your entire workforce,<br />in one secure place.</h2>
+            <p>Payroll, attendance, leaves and documents — managed with the precision your team deserves.</p>
+            <ul className="auth-aside-points">
+              <li><ShieldCheck size={18} /> Bank-grade security</li>
+              <li><Wallet size={18} /> Accurate automated payroll</li>
+              <li><Clock size={18} /> Real-time attendance</li>
+            </ul>
+          </div>
+          <div className="auth-aside-foot">© 2026 Enterprise HRMS</div>
+        </aside>
+
+        <div className="auth-card">
+          <div className="auth-logo">
+            <h1>Welcome back</h1>
+            <p>Sign in to your workspace</p>
+          </div>
 
         <form onSubmit={handleSubmit}>
           <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
@@ -121,7 +140,7 @@ export default function LoginPage() {
                   background: 'none',
                   border: 'none',
                   cursor: 'pointer',
-                  color: '#64748b',
+                  color: 'var(--muted)',
                   fontSize: '13px'
                 }}
               >
@@ -146,6 +165,7 @@ export default function LoginPage() {
           <Link to="/forgot-password" style={{ color: 'var(--primary)', fontSize: '14px', textDecoration: 'none' }}>
             Forgot Password?
           </Link>
+        </div>
         </div>
       </div>
     </div>

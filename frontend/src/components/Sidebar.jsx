@@ -79,9 +79,9 @@ export default function Sidebar() {
   return (
     <aside className="sidebar">
       <div className="sidebar-brand">
-        <div className="sidebar-logo">
-          <Briefcase size={20} color="#C9FF3D" strokeWidth={2.2} />
-        </div>
+          <div className="sidebar-logo">
+            <Briefcase size={20} color="#fff" strokeWidth={2.2} />
+          </div>
         <div>
           <h2>Enterprise HRMS</h2>
           <p>Payroll Management System</p>
