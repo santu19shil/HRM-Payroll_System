@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { noticeAPI, departmentAPI, designationAPI, employeeAPI } from '../../services/api';
 import toast from 'react-hot-toast';
 import MultiSelect from '../../components/MultiSelect';
+import ActionMenu from '../../components/ActionMenu';
 
 export default function AdminNotices() {
   const [notices, setNotices] = useState([]);
@@ -102,7 +103,16 @@ export default function AdminNotices() {
     }
   };
 
-  if (loading) return <div className="loading-page"><div className="loading-spinner"></div></div>;
+  const handleDelete = async (id) => {
+    if (!window.confirm('Delete this notice? This cannot be undone.')) return;
+    try {
+      await noticeAPI.delete(id);
+      toast.success('Notice deleted');
+      loadAll();
+    } catch (err) {
+      toast.error('Failed to delete notice');
+    }
+  };
 
   return (
     <div>
@@ -204,7 +214,13 @@ export default function AdminNotices() {
                 <div key={n.id} className="notice-item">
                   <div className="notice-item-head">
                     <div className="notice-item-title">{n.title}</div>
-                    <div className="notice-date">{n.created_at ? new Date(n.created_at).toLocaleDateString() : '-'}</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <div className="notice-date">{n.created_at ? new Date(n.created_at).toLocaleDateString() : '-'}</div>
+                      <ActionMenu
+                        items={[{ label: 'Delete', danger: true, onClick: () => handleDelete(n.id) }]}
+                        menuWidth={130}
+                      />
+                    </div>
                   </div>
                   <div className="notice-item-body">{n.content}</div>
                   {n.attachment_name && (

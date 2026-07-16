@@ -106,7 +106,7 @@ export default function AdminDocuments() {
             <div className="card-subtitle">{documents.length} document(s)</div>
           </div>
         </div>
-        <div className="table-container">
+        <div className="table-container allow-overflow">
           <table>
             <thead>
               <tr>
@@ -142,7 +142,8 @@ export default function AdminDocuments() {
                           a.click();
                         } },
                         ...(doc.status !== 'Verified' ? [{ label: 'Accept', onClick: () => handleVerify(doc.id) }] : []),
-                        ...(doc.status !== 'Rejected' ? [{ label: 'Reject', onClick: () => openReject(doc.id) }] : [])
+                        ...(doc.status !== 'Rejected' ? [{ label: 'Reject', onClick: () => openReject(doc.id) }] : []),
+                        { label: 'Delete', danger: true, onClick: () => handleDelete(doc.id) }
                       ]}
                     />
                   </td>

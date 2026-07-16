@@ -178,4 +178,25 @@ const myNotices = async (req, res) => {
   }
 };
 
-module.exports = { createNotice, listNotices, myNotices };
+/**
+ * Delete a notice (HR/admin)
+ * DELETE /api/notices/:id
+ */
+const deleteNotice = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const [existing] = await pool.query('SELECT id FROM notices WHERE id = ?', [id]);
+    if (existing.length === 0) return notFound(res, 'Notice not found');
+
+    await pool.query('DELETE FROM notice_recipients WHERE notice_id = ?', [id]);
+    await pool.query('DELETE FROM notifications WHERE reference_type = ? AND reference_id = ?', ['NOTICE', id]);
+    await pool.query('DELETE FROM notices WHERE id = ?', [id]);
+
+    return success(res, null, 'Notice deleted successfully');
+  } catch (err) {
+    console.error('Delete notice error:', err);
+    return error(res, 'Failed to delete notice');
+  }
+};
+
+module.exports = { createNotice, listNotices, myNotices, deleteNotice };

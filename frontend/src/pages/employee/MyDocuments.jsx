@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { documentAPI, notificationAPI, API_BASE_URL } from '../../services/api';
+import ActionMenu from '../../components/ActionMenu';
 import toast from 'react-hot-toast';
 
 export default function MyDocuments() {
@@ -42,6 +43,17 @@ export default function MyDocuments() {
 
   const fileUrl = (doc) => `${API_BASE_URL.replace('/api', '')}${doc.file_path}`;
 
+  const handleDelete = async (id) => {
+    if (!window.confirm('Delete this document? This cannot be undone.')) return;
+    try {
+      await documentAPI.delete(id);
+      toast.success('Document deleted');
+      loadData();
+    } catch (err) {
+      toast.error('Failed to delete document');
+    }
+  };
+
   const getStatusBadge = (doc) => {
     if (doc.status === 'Verified') return <span className="badge badge-success">Accepted</span>;
     if (doc.status === 'Rejected') return <span className="badge badge-danger">Rejected</span>;
@@ -67,7 +79,7 @@ export default function MyDocuments() {
         </div>
       </div>
 
-      <div className="table-container">
+      <div className="table-container allow-overflow">
         <table>
           <thead><tr><th>Name</th><th>Type</th><th>Size</th><th>Uploaded</th><th>Status</th><th>Action</th></tr></thead>
           <tbody>
@@ -84,7 +96,18 @@ export default function MyDocuments() {
                   )}
                 </td>
                 <td>
-                  <a href={fileUrl(d)} target="_blank" rel="noreferrer" className="btn btn-sm">View</a>
+                  <ActionMenu
+                    items={[
+                      { label: 'Open', onClick: () => window.open(fileUrl(d), '_blank') },
+                      { label: 'Download', onClick: () => {
+                        const a = document.createElement('a');
+                        a.href = fileUrl(d);
+                        a.download = d.name || 'document';
+                        a.click();
+                      } },
+                      { label: 'Delete', danger: true, onClick: () => handleDelete(d.id) }
+                    ]}
+                  />
                 </td>
               </tr>
             ))}

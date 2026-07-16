@@ -10,7 +10,9 @@ const fs = require('fs');
 const allowedOrigins = new Set([
   process.env.FRONTEND_URL,
   'http://localhost:5173',
-  'http://localhost:4173'
+  'http://localhost:4173',
+  // Allow common Vite dev tunnel origin(s) used during testing
+  'https://g9tv6fk3-5173.inc1.devtunnels.ms'
 ].filter(Boolean));
 
 const corsOptions = {

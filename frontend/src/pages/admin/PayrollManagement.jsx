@@ -28,6 +28,9 @@ export default function PayrollManagement() {
   const [viewRun, setViewRun] = useState(null);
   const [viewPayslip, setViewPayslip] = useState(null);
   const [runDetails, setRunDetails] = useState([]);
+  const [editPayslip, setEditPayslip] = useState(null);
+  const [editForm, setEditForm] = useState({ basic_salary: '', total_earnings: '', total_deductions: '', net_pay: '', paid_days: '', lop_days: '', status: 'PENDING' });
+  const [savingPayslip, setSavingPayslip] = useState(false);
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [tab, setTab] = useState('payslips');
 
@@ -161,6 +164,41 @@ export default function PayrollManagement() {
       loadData();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to delete payslip');
+    }
+  };
+
+  const openEditPayslip = (p) => {
+    setEditPayslip(p);
+    setEditForm({
+      basic_salary: p.basic_salary ?? '',
+      total_earnings: p.total_earnings ?? '',
+      total_deductions: p.total_deductions ?? '',
+      net_pay: p.net_pay ?? '',
+      paid_days: p.paid_days ?? '',
+      lop_days: p.lop_days ?? '',
+      status: p.status || 'PENDING'
+    });
+  };
+
+  const handleSavePayslip = async () => {
+    setSavingPayslip(true);
+    try {
+      await payrollAPI.updatePayslip(editPayslip.id, {
+        basic_salary: Number(editForm.basic_salary) || 0,
+        total_earnings: Number(editForm.total_earnings) || 0,
+        total_deductions: Number(editForm.total_deductions) || 0,
+        net_pay: Number(editForm.net_pay) || 0,
+        paid_days: Number(editForm.paid_days) || 0,
+        lop_days: Number(editForm.lop_days) || 0,
+        status: editForm.status
+      });
+      toast.success('Payslip updated');
+      setEditPayslip(null);
+      loadData();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to update payslip');
+    } finally {
+      setSavingPayslip(false);
     }
   };
 
@@ -320,6 +358,7 @@ export default function PayrollManagement() {
                       <ActionMenu items={[
                         { label: 'View', onClick: () => setViewPayslip(p) },
                         { label: 'Download PDF', onClick: () => handleDownloadPayslip(p.id) },
+                        { label: 'Edit', onClick: () => openEditPayslip(p) },
                         { label: 'Delete', danger: true, onClick: () => handleDeletePayslip(p) }
                       ]} />
                     </td>
@@ -599,6 +638,62 @@ export default function PayrollManagement() {
             <div className="modal-footer">
               <button type="button" className="btn" onClick={() => setViewPayslip(null)}>Close</button>
               <button type="button" className="btn btn-primary" onClick={() => { setViewPayslip(null); handleDownloadPayslip(viewPayslip.id); }}>Download PDF</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {editPayslip && (
+        <div className="modal-overlay" onClick={() => setEditPayslip(null)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <div className="modal-title">Edit Payslip - {editPayslip.employee_name}</div>
+              <button className="btn btn-sm" onClick={() => setEditPayslip(null)}>✕</button>
+            </div>
+            <div className="modal-body">
+              <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 16 }}>
+                {months[editPayslip.month]} {editPayslip.year} · {editPayslip.employee_number || editPayslip.employee_id}
+              </div>
+              <div className="grid grid2">
+                <div className="form-group">
+                  <label className="form-label">Basic Salary</label>
+                  <input className="form-input" type="number" value={editForm.basic_salary} onChange={e => setEditForm({ ...editForm, basic_salary: e.target.value })} />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Total Earnings</label>
+                  <input className="form-input" type="number" value={editForm.total_earnings} onChange={e => setEditForm({ ...editForm, total_earnings: e.target.value })} />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Total Deductions</label>
+                  <input className="form-input" type="number" value={editForm.total_deductions} onChange={e => setEditForm({ ...editForm, total_deductions: e.target.value })} />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Net Pay</label>
+                  <input className="form-input" type="number" value={editForm.net_pay} onChange={e => setEditForm({ ...editForm, net_pay: e.target.value })} />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Paid Days</label>
+                  <input className="form-input" type="number" value={editForm.paid_days} onChange={e => setEditForm({ ...editForm, paid_days: e.target.value })} />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">LOP Days</label>
+                  <input className="form-input" type="number" value={editForm.lop_days} onChange={e => setEditForm({ ...editForm, lop_days: e.target.value })} />
+                </div>
+                <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                  <label className="form-label">Status</label>
+                  <select className="form-select" value={editForm.status} onChange={e => setEditForm({ ...editForm, status: e.target.value })}>
+                    <option value="PENDING">PENDING</option>
+                    <option value="PROCESSED">PROCESSED</option>
+                    <option value="PAID">PAID</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button type="button" className="btn" onClick={() => setEditPayslip(null)}>Cancel</button>
+              <button type="button" className="btn btn-primary" onClick={handleSavePayslip} disabled={savingPayslip}>
+                {savingPayslip ? 'Saving...' : 'Save Changes'}
+              </button>
             </div>
           </div>
         </div>

@@ -12,7 +12,8 @@ const {
   getSalaryStructure,
   updateSalaryStructure,
   deletePayrollRun,
-  deletePayslip
+  deletePayslip,
+  updatePayslip
 } = require('../controllers/payrollController');
 
 // Employee self-service
@@ -23,6 +24,7 @@ router.get('/:id/download', authenticate, downloadPayslip);
 // HR routes
 router.get('/runs', authenticate, authorizeHR, getPayrollRuns);
 router.get('/admin/payslips', authenticate, authorizeHR, getAllPayslips);
+router.put('/admin/payslips/:id', authenticate, authorizeHR, updatePayslip);
 router.delete('/admin/payslips/:id', authenticate, authorizeHR, deletePayslip);
 router.get('/components', authenticate, authorizeHR, getComponents);
 router.get('/employees/:id/salary-structure', authenticate, authorizeHR, getSalaryStructure);

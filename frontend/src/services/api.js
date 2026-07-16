@@ -153,6 +153,7 @@ export const payrollAPI = {
   getRuns: () => api.get('/payroll/runs'),
   getEmployees: () => api.get('/payroll/employees'),
   getAllPayslips: () => api.get('/payroll/admin/payslips'),
+  updatePayslip: (id, data) => api.put(`/payroll/admin/payslips/${id}`, data),
   deletePayslip: (id) => api.delete(`/payroll/admin/payslips/${id}`),
   deleteRun: (id) => api.delete(`/payroll/runs/${id}`),
   process: (data) => api.post('/payroll/process', data),
@@ -185,7 +186,8 @@ export const documentAPI = {
 export const noticeAPI = {
   create: (data, config) => api.post('/notices', data, config),
   list: () => api.get('/notices'),
-  my: () => api.get('/notices/my')
+  my: () => api.get('/notices/my'),
+  delete: (id) => api.delete(`/notices/${id}`)
 };
 
 // Notification APIs

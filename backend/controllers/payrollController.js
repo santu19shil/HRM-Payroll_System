@@ -732,6 +732,93 @@ const deletePayslip = async (req, res) => {
   }
 };
 
+/**
+ * Update a payslip's editable amounts (HR/admin)
+ * PUT /api/payroll/admin/payslips/:id
+ */
+const updatePayslip = async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+
+    const { id } = req.params;
+    const {
+      basic_salary,
+      total_earnings,
+      total_deductions,
+      net_pay,
+      gross_pay,
+      paid_days,
+      lop_days,
+      status
+    } = req.body;
+
+    const [item] = await connection.query('SELECT id, payroll_run_id FROM payroll_items WHERE id = ?', [id]);
+    if (item.length === 0) {
+      await connection.rollback();
+      return notFound(res, 'Payslip not found');
+    }
+    const runId = item[0].payroll_run_id;
+
+    const fields = [];
+    const values = [];
+
+    const numOr = (v, fallback) => {
+      const n = Number(v);
+      return Number.isFinite(n) ? n : fallback;
+    };
+
+    if (basic_salary !== undefined) { fields.push('basic_salary = ?'); values.push(numOr(basic_salary, 0)); }
+    if (total_earnings !== undefined) { fields.push('total_earnings = ?'); values.push(numOr(total_earnings, 0)); }
+    if (total_deductions !== undefined) { fields.push('total_deductions = ?'); values.push(numOr(total_deductions, 0)); }
+    if (net_pay !== undefined) { fields.push('net_pay = ?'); values.push(numOr(net_pay, 0)); }
+    if (gross_pay !== undefined) { fields.push('gross_pay = ?'); values.push(numOr(gross_pay, 0)); }
+    if (paid_days !== undefined) { fields.push('paid_days = ?'); values.push(Math.round(numOr(paid_days, 0))); }
+    if (lop_days !== undefined) { fields.push('lop_days = ?'); values.push(Math.round(numOr(lop_days, 0))); }
+    if (status !== undefined && ['PENDING', 'PROCESSED', 'PAID'].includes(status)) {
+      fields.push('status = ?');
+      values.push(status);
+      if (status === 'PAID') fields.push("paid_at = COALESCE(paid_at, NOW())");
+    }
+
+    if (fields.length > 0) {
+      values.push(id);
+      await connection.query(
+        `UPDATE payroll_items SET ${fields.join(', ')} WHERE id = ?`,
+        values
+      );
+    }
+
+    // Recompute the parent run aggregates from its payslips.
+    const [remaining] = await connection.query(
+      `SELECT
+         COALESCE(SUM(total_earnings), 0) as gross_earnings,
+         COALESCE(SUM(total_deductions), 0) as gross_deductions,
+         COALESCE(SUM(net_pay), 0) as gross_net,
+         COALESCE(SUM(employer_total), 0) as gross_employer,
+         COUNT(*) as employee_count
+       FROM payroll_items WHERE payroll_run_id = ?`,
+      [runId]
+    );
+
+    await connection.query(
+      `UPDATE payroll_runs
+       SET total_gross_pay = ?, total_deductions = ?, total_net_pay = ?, total_employer_contributions = ?, total_employees = ?
+       WHERE id = ?`,
+      [remaining[0].gross_earnings || 0, remaining[0].gross_deductions || 0, remaining[0].gross_net || 0, remaining[0].gross_employer || 0, remaining[0].employee_count || 0, runId]
+    );
+
+    await connection.commit();
+    return success(res, null, 'Payslip updated successfully');
+  } catch (err) {
+    await connection.rollback();
+    console.error('Update payslip error:', err);
+    return error(res, 'Failed to update payslip');
+  } finally {
+    connection.release();
+  }
+};
+
 module.exports = {
   getMyPayslips,
   getMySalaryStructure,
@@ -743,5 +830,6 @@ module.exports = {
   getSalaryStructure,
   updateSalaryStructure,
   deletePayrollRun,
-  deletePayslip
+  deletePayslip,
+  updatePayslip
 };

@@ -77,10 +77,20 @@ export function AuthProvider({ children }) {
 
   const changePassword = async (data) => {
     const response = await authAPI.changePassword(data);
-    if (response.data.success) {
-      setUser(prev => ({ ...prev, isFirstLogin: false, tempPassword: null }));
+
+    if (response.data?.success) {
+      // Backend updates: is_temp_password = 0, must_change_password = 0
+      setUser((prev) => ({
+        ...prev,
+        is_temp_password: 0,
+        must_change_password: 0,
+        isFirstLogin: false,
+        mustChangePassword: false,
+        tempPassword: null
+      }));
       localStorage.removeItem('showFirstLoginModal');
     }
+
     return response.data;
   };
 

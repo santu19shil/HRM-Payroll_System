@@ -22,6 +22,7 @@ export default function EmployeeManagement() {
     pan_number: '', aadhar_number: '', basic_salary: ''
   });
   const [tempPasswords, setTempPasswords] = useState({});
+  const [createdCred, setCreatedCred] = useState(null);
 
   const getDepartmentName = (id) => {
     const dept = departments.find(d => d.id === id);
@@ -68,6 +69,10 @@ export default function EmployeeManagement() {
       } else {
         const res = await employeeAPI.create(payload);
         toast.success('Employee created successfully');
+        const data = res?.data?.data || {};
+        if (data.temp_password) {
+          setCreatedCred({ employeeId: data.employee_id, email, tempPassword: data.temp_password });
+        }
       }
       setShowModal(false);
       setEditingEmployee(null);
@@ -304,6 +309,46 @@ export default function EmployeeManagement() {
                 <button type="submit" className="btn btn-primary">{editingEmployee ? 'Update' : 'Create Employee'}</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {createdCred && (
+        <div className="modal-overlay" onClick={() => setCreatedCred(null)}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 480 }}>
+            <div className="modal-header">
+              <div className="modal-title">Employee Created</div>
+              <button className="btn btn-sm" onClick={() => setCreatedCred(null)}>✕</button>
+            </div>
+            <div className="modal-body">
+              <p style={{ color: 'var(--text-secondary)', marginBottom: 16 }}>
+                Share these credentials with the employee. They will be asked to set a new password on first login.
+              </p>
+              <div className="form-group">
+                <label className="form-label">Employee ID</label>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <input className="form-input mono" value={createdCred.employeeId || ''} readOnly />
+                  <button type="button" className="btn btn-sm" onClick={() => { navigator.clipboard?.writeText(createdCred.employeeId || ''); toast.success('Employee ID copied'); }}>Copy</button>
+                </div>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Email</label>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <input className="form-input mono" value={createdCred.email || ''} readOnly />
+                  <button type="button" className="btn btn-sm" onClick={() => { navigator.clipboard?.writeText(createdCred.email || ''); toast.success('Email copied'); }}>Copy</button>
+                </div>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Temporary Password</label>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <input className="form-input mono" value={createdCred.tempPassword || ''} readOnly />
+                  <button type="button" className="btn btn-sm btn-primary" onClick={() => { navigator.clipboard?.writeText(createdCred.tempPassword || ''); toast.success('Password copied'); }}>Copy</button>
+                </div>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button type="button" className="btn btn-primary" onClick={() => setCreatedCred(null)}>Done</button>
+            </div>
           </div>
         </div>
       )}
