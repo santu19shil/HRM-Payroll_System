@@ -49,7 +49,7 @@ export default function TopBar() {
       <div className="topbar-left">
         <h1 className="topbar-title">{getPageTitle()}</h1>
         <div className="topbar-search">
-          <span className="search-bar-icon"><Search size={16} /></span>
+          <span className="search-bar-icon"><Search size={16} color="#71717A" /></span>
           <input placeholder="Search employees, documents, payroll..." />
         </div>
       </div>
