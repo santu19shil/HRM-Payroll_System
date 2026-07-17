@@ -108,9 +108,12 @@ export default function AdminEmployeesPage() {
       </div>
 
       <div style={{ opacity: loading ? 0.7 : 1, transition: 'opacity .2s' }}>
-        <EmployeeTable employees={employees} onEdit={(e) => setEditing(e)} onDelete={handleDelete} />
+        <EmployeeTable 
+          employees={employees.filter((emp) => emp.employee_id !== 'ADMIN001')}
+          onEdit={(e) => setEditing(e)} 
+          onDelete={handleDelete} 
+        />
       </div>
     </div>
   );
 }
-

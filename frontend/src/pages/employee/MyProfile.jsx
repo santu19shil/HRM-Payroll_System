@@ -20,12 +20,14 @@ export default function MyProfile() {
       const res = await employeeAPI.getMyProfile();
       const data = res.data.data;
       setProfile(data);
+      
+      // Initialize only the fields the employee is allowed to edit
       setFormData({
+        email: data.email || '',
         contactNumber: data.contactNumber || '',
         address: data.address || '',
         city: data.city || '',
         state: data.state || '',
-        postalCode: data.postalCode || '',
         emergencyContactName: data.emergencyContactName || '',
         emergencyContactPhone: data.emergencyContactPhone || '',
         emergencyContactRelation: data.emergencyContactRelation || ''
@@ -40,7 +42,19 @@ export default function MyProfile() {
 
   const handleSave = async () => {
     try {
-      await employeeAPI.updateMyProfile(formData);
+      // Map only the allowed fields to the backend payload
+      const payload = {
+        email: formData.email,
+        phone: formData.contactNumber,
+        address: formData.address,
+        city: formData.city,
+        state: formData.state,
+        emergency_contact_name: formData.emergencyContactName,
+        emergency_contact_phone: formData.emergencyContactPhone,
+        emergency_contact_relation: formData.emergencyContactRelation
+      };
+
+      await employeeAPI.updateMyProfile(payload);
       toast.success('Profile updated');
       setEditing(false);
       loadProfile();
@@ -75,32 +89,19 @@ export default function MyProfile() {
   };
 
   if (loading) {
-    return (
-      <div className="loading-page">
-        <div className="loading-spinner"></div>
-      </div>
-    );
+    return <div className="loading-page"><div className="loading-spinner"></div></div>;
   }
 
   if (error || !profile) {
     return (
       <div className="empty-state">
         <div className="empty-state-title">Profile not found</div>
-        <button className="btn" style={{ marginTop: 12 }} onClick={loadProfile}>
-          Retry
-        </button>
+        <button className="btn" style={{ marginTop: 12 }} onClick={loadProfile}>Retry</button>
       </div>
     );
   }
 
-  const initials = (profile.name || '?')
-    .split(' ')
-    .map((p) => p[0])
-    .filter(Boolean)
-    .slice(0, 2)
-    .join('')
-    .toUpperCase();
-
+  const initials = (profile.name || '?').split(' ').map((p) => p[0]).filter(Boolean).slice(0, 2).join('').toUpperCase();
   const fullName = profile.name || 'N/A';
   const department = profile.department_name || profile.department || 'N/A';
   const designation = profile.designation_title || profile.designationId || 'N/A';
@@ -121,32 +122,14 @@ export default function MyProfile() {
               style={{ width: 84, height: 84, borderRadius: '50%', objectFit: 'cover', border: '3px solid var(--primary-light)', cursor: 'pointer' }}
             />
           ) : (
-            <div
-              className="profile-avatar-placeholder"
-              style={{ cursor: 'default' }}
-            >
-              {initials}
-            </div>
+            <div className="profile-avatar-placeholder" style={{ cursor: 'default' }}>{initials}</div>
           )}
           <label
             htmlFor="profile-pic-upload"
             style={{
-              position: 'absolute',
-              bottom: 0,
-              right: 0,
-              width: 28,
-              height: 28,
-              borderRadius: '50%',
-              background: 'var(--primary)',
-              color: '#fff',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: 14,
-              cursor: 'pointer',
-              border: '2px solid #fff',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-              transition: 'transform 0.15s'
+              position: 'absolute', bottom: 0, right: 0, width: 28, height: 28, borderRadius: '50%',
+              background: 'var(--primary)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 14, cursor: 'pointer', border: '2px solid #fff', boxShadow: '0 2px 8px rgba(0,0,0,0.15)', transition: 'transform 0.15s'
             }}
             title="Change profile picture"
             onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
@@ -155,20 +138,14 @@ export default function MyProfile() {
             {uploadingPic ? '⏳' : '📷'}
           </label>
           <input
-            id="profile-pic-upload"
-            type="file"
-            accept="image/*"
-            style={{ display: 'none' }}
-            onChange={handleProfilePicUpload}
-            disabled={uploadingPic}
+            id="profile-pic-upload" type="file" accept="image/*" style={{ display: 'none' }}
+            onChange={handleProfilePicUpload} disabled={uploadingPic}
           />
         </div>
         <div className="profile-info">
           <div className="profile-name">{fullName}</div>
           <div className="profile-role">{designation} • {department}</div>
-          <div className="profile-role" style={{ marginTop: 4 }}>
-            ID: {profile.employee_id || 'N/A'}
-          </div>
+          <div className="profile-role" style={{ marginTop: 4 }}>ID: {profile.employee_id || 'N/A'}</div>
         </div>
         <button className="btn" onClick={() => setEditing(!editing)}>
           {editing ? 'Cancel' : 'Edit Profile'}
@@ -180,14 +157,24 @@ export default function MyProfile() {
           <div className="card-title">Personal Information</div>
         </div>
         <div className="grid-2">
+          {/* LOCKED FIELD */}
           <div className="form-group">
             <label className="form-label">Name</label>
             <input className="form-input" value={fullName} disabled />
           </div>
+          
+          {/* EDITABLE FIELD */}
           <div className="form-group">
             <label className="form-label">Email</label>
-            <input className="form-input" value={profile.email || '-'} disabled />
+            <input 
+              className="form-input" 
+              value={editing ? formData.email : (profile.email || '-')} 
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              disabled={!editing} 
+            />
           </div>
+
+          {/* EDITABLE FIELD */}
           <div className="form-group">
             <label className="form-label">Phone</label>
             <input
@@ -197,13 +184,15 @@ export default function MyProfile() {
               disabled={!editing}
             />
           </div>
+
+          {/* LOCKED FIELDS BELOW */}
           <div className="form-group">
             <label className="form-label">Gender</label>
             <input className="form-input" value={profile.gender || '-'} disabled />
           </div>
           <div className="form-group">
             <label className="form-label">Date of Birth</label>
-            <input className="form-input" value={profile.dob || '-'} disabled />
+            <input className="form-input" value={profile.dob ? new Date(profile.dob).toLocaleDateString('en-IN') : '-'} disabled />
           </div>
           <div className="form-group">
             <label className="form-label">Department</label>
@@ -213,6 +202,8 @@ export default function MyProfile() {
             <label className="form-label">Designation</label>
             <input className="form-input" value={designation} disabled />
           </div>
+          
+          {/* EDITABLE FIELD */}
           <div className="form-group" style={{ gridColumn: 'span 2' }}>
             <label className="form-label">Address</label>
             <textarea
@@ -222,6 +213,8 @@ export default function MyProfile() {
               disabled={!editing}
             />
           </div>
+
+          {/* EDITABLE FIELD */}
           <div className="form-group">
             <label className="form-label">City</label>
             <input
@@ -231,6 +224,8 @@ export default function MyProfile() {
               disabled={!editing}
             />
           </div>
+          
+          {/* EDITABLE FIELD */}
           <div className="form-group">
             <label className="form-label">State</label>
             <input
@@ -248,9 +243,10 @@ export default function MyProfile() {
           <div className="card-title">Work Information</div>
         </div>
         <div className="grid-2">
+          {/* ALL LOCKED */}
           <div className="form-group">
             <label className="form-label">Joining Date</label>
-            <input className="form-input" value={profile.joiningDate || '-'} disabled />
+            <input className="form-input" value={profile.joiningDate ? new Date(profile.joiningDate).toLocaleDateString('en-IN') : '-'} disabled />
           </div>
           <div className="form-group">
             <label className="form-label">Employment Type</label>
@@ -268,6 +264,7 @@ export default function MyProfile() {
           <div className="card-title">Emergency Contact</div>
         </div>
         <div className="grid-2">
+          {/* EDITABLE FIELD */}
           <div className="form-group">
             <label className="form-label">Contact Name</label>
             <input
@@ -277,6 +274,8 @@ export default function MyProfile() {
               disabled={!editing}
             />
           </div>
+          
+          {/* EDITABLE FIELD */}
           <div className="form-group">
             <label className="form-label">Contact Phone</label>
             <input
@@ -286,6 +285,8 @@ export default function MyProfile() {
               disabled={!editing}
             />
           </div>
+          
+          {/* EDITABLE FIELD */}
           <div className="form-group">
             <label className="form-label">Relation</label>
             <input
@@ -304,62 +305,17 @@ export default function MyProfile() {
         </div>
       )}
 
+      {/* Picture Preview Modal remains unchanged */}
       {previewPic && (
         <div
-          style={{
-            position: 'fixed',
-            top: 0, left: 0, right: 0, bottom: 0,
-            background: 'rgba(15, 23, 42, 0.7)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 999999,
-            padding: 20
-          }}
+          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15, 23, 42, 0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999999, padding: 20 }}
           onClick={() => setPreviewPic(null)}
         >
-          <div
-            style={{
-              position: 'relative',
-              display: 'inline-block',
-              maxWidth: '90vw',
-              maxHeight: '90vh'
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <img
-              src={previewPic}
-              alt={fullName}
-              style={{
-                display: 'block',
-                maxWidth: '85vw',
-                maxHeight: '85vh',
-                borderRadius: 12,
-                boxShadow: '0 20px 60px rgba(0,0,0,0.4)'
-              }}
-            />
+          <div style={{ position: 'relative', display: 'inline-block', maxWidth: '90vw', maxHeight: '90vh' }} onClick={(e) => e.stopPropagation()}>
+            <img src={previewPic} alt={fullName} style={{ display: 'block', maxWidth: '85vw', maxHeight: '85vh', borderRadius: 12, boxShadow: '0 20px 60px rgba(0,0,0,0.4)' }} />
             <button
-              type="button"
-              onClick={() => setPreviewPic(null)}
-              style={{
-                position: 'absolute',
-                top: -16,
-                right: -16,
-                width: 36,
-                height: 36,
-                borderRadius: '50%',
-                border: '2px solid #fff',
-                background: '#ef4444',
-                color: '#fff',
-                fontSize: 18,
-                fontWeight: 700,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                boxShadow: '0 2px 12px rgba(0,0,0,0.3)',
-                lineHeight: 1
-              }}
+              type="button" onClick={() => setPreviewPic(null)}
+              style={{ position: 'absolute', top: -16, right: -16, width: 36, height: 36, borderRadius: '50%', border: '2px solid #fff', background: '#ef4444', color: '#fff', fontSize: 18, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 12px rgba(0,0,0,0.3)', lineHeight: 1 }}
             >
               ✕
             </button>
