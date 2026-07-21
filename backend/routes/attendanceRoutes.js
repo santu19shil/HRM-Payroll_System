@@ -2,12 +2,11 @@ const express = require('express');
 const router = express.Router();
 const { authenticate, authorizeHR } = require('../middleware/authMiddleware');
 const {
-  getOfficeLocations, checkIn, checkOut, getTodayAttendance,
+  checkIn, checkOut, getTodayAttendance,
   getAttendanceHistory, getAttendanceSummary, getAdminMonthlySummary, getAllAttendance, correctAttendance
 } = require('../controllers/attendanceController');
 
 // Employee self-service
-router.get('/offices', authenticate, getOfficeLocations);
 router.post('/check-in', authenticate, checkIn);
 router.post('/check-out', authenticate, checkOut);
 router.get('/today', authenticate, getTodayAttendance);

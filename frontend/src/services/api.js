@@ -1,6 +1,10 @@
 import axios from 'axios';
 
-export const API_BASE_URL = 'http://localhost:5000/api';
+// Relative base URL so all requests go through the Vite dev proxy
+// (configured in vite.config.js) and stay same-origin to the browser.
+// This avoids cross-origin/CORS failures when the app is accessed via a
+// dev tunnel. In production the frontend is served from the same origin.
+export const API_BASE_URL = '/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -10,10 +14,23 @@ const api = axios.create({
   withCredentials: true
 });
 
-// Request interceptor to add auth token
+// Request interceptor to add auth token (supports legacy localStorage key "accessoken")
+const normalizeTokenKey = () => {
+  const correct = localStorage.getItem('accessToken');
+  if (correct) return correct;
+
+  const wrong = localStorage.getItem('accessoken');
+  if (wrong) {
+    localStorage.setItem('accessToken', wrong);
+    return wrong;
+  }
+
+  return null;
+};
+
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('accessToken');
+    const token = normalizeTokenKey();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -21,6 +38,7 @@ api.interceptors.request.use(
   },
   (error) => Promise.reject(error)
 );
+
 
 // Response interceptor for token refresh
 api.interceptors.response.use(
@@ -118,7 +136,6 @@ export const designationAPI = {
 
 // Attendance APIs
 export const attendanceAPI = {
-  getOffices: () => api.get('/attendance/offices'),
   checkIn: (data) => api.post('/attendance/check-in', data),
   checkOut: (data) => api.post('/attendance/check-out', data),
   getToday: () => api.get('/attendance/today'),

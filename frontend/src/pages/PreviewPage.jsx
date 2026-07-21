@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   Briefcase, Users, UserCheck, Clock, CalendarClock, CalendarX, Wallet, AlertTriangle,
-  FileText, Megaphone, LayoutDashboard, Building2, Settings, LogOut, Search, TrendingUp,
+  FileText, Megaphone, LayoutDashboard, Building2, Settings, LogOut, Search,
   Activity, Plus, Filter, MoreHorizontal, Phone, Mail, MapPin, Download, Calendar,
   CheckCircle2, XCircle, CreditCard, Bell, ShieldCheck, PieChart, ListChecks
 } from 'lucide-react';
@@ -159,9 +159,6 @@ function StatGrid({ stats }) {
             <div className="stat-content">
               <div className="stat-label">{s.label}</div>
               <div className="stat-value">{s.value}</div>
-              <div className="stat-change positive" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <TrendingUp size={13} /> +4.2% vs last month
-              </div>
             </div>
           </div>
         );
@@ -306,21 +303,6 @@ function EmployeeDashboard() {
                 ))}
               </tbody>
             </table>
-          </div>
-        </div>
-
-        <div className="card">
-          <div className="card-header">
-            <div>
-              <div className="card-title">Quick Actions</div>
-              <div className="card-subtitle">Common tasks</div>
-            </div>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <button className="btn btn-sm" style={{ justifyContent: 'flex-start' }}><CalendarClock size={16} /> Apply for Leave</button>
-            <button className="btn btn-sm" style={{ justifyContent: 'flex-start' }}><Download size={16} /> Download Payslip</button>
-            <button className="btn btn-sm" style={{ justifyContent: 'flex-start' }}><FileText size={16} /> Upload Document</button>
-            <button className="btn btn-sm" style={{ justifyContent: 'flex-start' }}><Megaphone size={16} /> View Notices</button>
           </div>
         </div>
       </div>

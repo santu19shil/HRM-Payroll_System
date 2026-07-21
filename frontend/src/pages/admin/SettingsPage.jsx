@@ -38,8 +38,11 @@ export default function SettingsPage() {
       const formData = new FormData();
       formData.append('logo', file);
       const res = await settingsAPI.uploadLogo(formData);
-      setLogo(res.data.data.logo_path);
+      const newLogo = res.data.data.logo_path;
+      setLogo(newLogo);
+      setSettings(prev => ({ ...prev, company_logo: newLogo }));
       toast.success('Logo uploaded');
+      window.dispatchEvent(new CustomEvent('company-logo-updated', { detail: { logo: newLogo } }));
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to upload logo');
     } finally {

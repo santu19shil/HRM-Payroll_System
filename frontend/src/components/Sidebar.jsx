@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { notificationAPI } from '../services/api';
-import { LayoutDashboard, Users, Building2, Briefcase, Clock, CalendarDays, Wallet, Plane, FileText, Megaphone, Settings, UserCircle, LogOut } from 'lucide-react';
+import { notificationAPI, settingsAPI } from '../services/api';
+import { LayoutDashboard, Users, Building2, Briefcase, Clock, CalendarDays, Wallet, Plane, FileText, Megaphone, Settings, UserCircle } from 'lucide-react';
 
 const adminLinks = [
   { section: 'Main', items: [
@@ -18,11 +18,8 @@ const adminLinks = [
     { to: '/admin/holidays', label: 'Holidays', icon: Plane },
     { to: '/admin/documents', label: 'Documents', icon: FileText, badge: 'documents' },
     { to: '/admin/notices', label: 'Notices', icon: Megaphone },
-  ]},
-  { section: 'Account', items: [
-      { to: '#logout', label: 'Logout', icon: LogOut, action: true },
-    ]
-  }
+    { to: '/admin/settings', label: 'Settings', icon: Settings },
+  ]}
 ];
 
 const employeeLinks = [
@@ -41,6 +38,7 @@ export default function Sidebar() {
   const { user } = useAuth();
   const location = useLocation();
   const [counts, setCounts] = useState({ leaves: 0, documents: 0, notifications: 0 });
+  const [companyLogo, setCompanyLogo] = useState('');
 
   const roleName = user?.role || user?.role_name;
   const isAdmin = roleName === 'SUPER_ADMIN' || roleName === 'HR_ADMIN';
@@ -50,15 +48,30 @@ export default function Sidebar() {
     let active = true;
     const load = async () => {
       try {
-        const res = await notificationAPI.getCounts();
-        if (active) setCounts(res.data.data || { leaves: 0, documents: 0, notifications: 0 });
+        const [countsRes, settingsRes] = await Promise.all([
+          notificationAPI.getCounts(),
+          settingsAPI.get()
+        ]);
+        if (active) {
+          setCounts(countsRes.data.data || { leaves: 0, documents: 0, notifications: 0 });
+          const logo = settingsRes.data?.data?.settings?.company_logo || settingsRes.data?.data?.company_logo || '';
+          setCompanyLogo(logo);
+        }
       } catch {
         /* ignore */
       }
     };
     load();
     const interval = setInterval(load, 15000);
-    return () => { active = false; clearInterval(interval); };
+    const onLogoUpdate = (e) => {
+      if (active) setCompanyLogo(e.detail?.logo || '');
+    };
+    window.addEventListener('company-logo-updated', onLogoUpdate);
+    return () => { 
+      active = false; 
+      clearInterval(interval); 
+      window.removeEventListener('company-logo-updated', onLogoUpdate);
+    };
   }, [location.pathname]);
 
   const badgeFor = (link) => {
@@ -67,20 +80,15 @@ export default function Sidebar() {
     return val > 0 ? <span className="nav-badge">{val}</span> : null;
   };
 
-  const handleNavClick = async (link) => {
-    if (!link.action) return;
-    try {
-      await logout();
-    } finally {
-      window.location.href = '/login';
-    }
-  };
-
   return (
     <aside className="sidebar">
       <div className="sidebar-brand">
           <div className="sidebar-logo">
-            <Briefcase size={20} color="#fff" strokeWidth={2.2} />
+            {companyLogo ? (
+              <img src={companyLogo} alt="Company logo" style={{ width: 28, height: 28, objectFit: 'contain' }} />
+            ) : (
+              <Briefcase size={20} color="#fff" strokeWidth={2.2} />
+            )}
           </div>
         <div>
           <h2>Enterprise HRMS</h2>
@@ -93,12 +101,7 @@ export default function Sidebar() {
             <div className="sidebar-section">{section.section}</div>
             {section.items.map((link) => {
               const Icon = link.icon;
-              return link.action ? (
-                <button key={link.to} onClick={() => handleNavClick(link)} className="sidebar-link" type="button">
-                  <span className="sidebar-icon"><Icon size={18} /></span>
-                  <span className="sidebar-label">{link.label}</span>
-                </button>
-              ) : (
+              return (
                 <NavLink
                   key={link.to}
                   to={link.to}

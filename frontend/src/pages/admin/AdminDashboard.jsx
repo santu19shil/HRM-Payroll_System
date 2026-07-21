@@ -1,16 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Users, UserCheck, CalendarX, Wallet, Activity, TrendingUp
+  Users, UserCheck, CalendarX, Wallet, Activity
 } from 'lucide-react';
-import { Doughnut } from 'react-chartjs-2';
-import { Chart as ChartJS, ArcElement, Tooltip } from 'chart.js';
 import { employeeAPI, attendanceAPI, leaveAPI } from '../../services/api';
-import toast from 'react-hot-toast';
 
-ChartJS.register(ArcElement, Tooltip);
-ChartJS.defaults.color = '#94a3b8';
-ChartJS.defaults.borderColor = 'rgba(148, 163, 184, 0.08)';
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
@@ -37,9 +31,6 @@ function StatGrid({ stats, onJump }) {
             <div className="stat-content">
               <div className="stat-label">{s.label}</div>
               <div className="stat-value">{s.value}</div>
-              <div className="stat-change positive" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <TrendingUp size={13} /> +4.2% vs last month
-              </div>
             </div>
           </div>
         );
@@ -164,21 +155,21 @@ export default function AdminDashboard() {
           <div className="card-header">
             <div>
               <div className="card-title">Workforce Insights</div>
-              <div className="card-subtitle">{MONTHS[month]} {year} attendance distribution</div>
+              <div className="card-subtitle">{MONTHS[month]} {year} attendance summary</div>
             </div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 24, flexWrap: 'wrap' }}>
-            <div style={{ width: 190, height: 190, flexShrink: 0 }}>
-              <Doughnut data={donutData} options={{ cutout: '68%', plugins: { legend: { display: false } } }} />
+          <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+            <div style={{ minWidth: 180 }}>
+              <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Present</div>
+              <div style={{ fontSize: 18, fontWeight: 700 }}>{monthly.present}</div>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {legendItems.map((s) => (
-                <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <span style={{ width: 10, height: 10, borderRadius: '50%', background: s.color }}></span>
-                  <span style={{ fontSize: 14, fontWeight: 600, minWidth: 64 }}>{s.label}</span>
-                  <span style={{ fontSize: 14, color: 'var(--text-secondary)' }}>{s.value} days</span>
-                </div>
-              ))}
+            <div style={{ minWidth: 180 }}>
+              <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Late</div>
+              <div style={{ fontSize: 18, fontWeight: 700 }}>{monthly.late}</div>
+            </div>
+            <div style={{ minWidth: 180 }}>
+              <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Absent</div>
+              <div style={{ fontSize: 18, fontWeight: 700 }}>{monthly.absent}</div>
             </div>
           </div>
         </div>
@@ -208,19 +199,6 @@ export default function AdminDashboard() {
             </table>
           </div>
         </div>
-      </div>
-
-      <div className="card">
-        <div className="card-header">
-          <div>
-            <div className="card-title">Welcome to Enterprise HRMS</div>
-            <div className="card-subtitle">HR Administration Dashboard</div>
-          </div>
-        </div>
-        <p style={{ color: 'var(--text-secondary)', lineHeight: 1.8 }}>
-          Use the sidebar to navigate through the system. You can manage employees,
-          departments, designations, attendance, leaves, payroll, and holidays from here.
-        </p>
       </div>
     </div>
   );

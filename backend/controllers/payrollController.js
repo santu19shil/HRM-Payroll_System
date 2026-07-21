@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const { success, created, badRequest, notFound, error, paginated } = require('../utils/response');
 const { generateId, getCurrentMonthYear, getWorkingDaysInMonth } = require('../utils/helpers');
+const { buildSlipPdfBuffer } = require('../utils/pdf');
 
 const MONTHS = ['', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
@@ -170,38 +171,42 @@ const downloadPayslip = async (req, res) => {
     const userId = req.user.userId;
     const userRole = req.user.role;
 
-    let item;
-    if (['SUPER_ADMIN', 'HR_ADMIN'].includes(userRole)) {
-      const [items] = await pool.query(
-        `SELECT pi.*, pr.month, pr.year, pr.status as run_status,
-                e.first_name, e.last_name, e.employee_id, e.designation_id, e.department_id,
-                d.name as department_name, des.title as designation_title
-         FROM payroll_items pi
-         JOIN payroll_runs pr ON pi.payroll_run_id = pr.id
-         JOIN employees e ON pi.employee_id = e.id
-         LEFT JOIN departments d ON e.department_id = d.id
-         LEFT JOIN designations des ON e.designation_id = des.id
-         WHERE pi.id = ?`,
-        [id]
-      );
-      if (items.length === 0) return notFound(res, 'Payslip not found');
-      item = items[0];
-    } else {
-      const [employees] = await pool.query('SELECT id, employee_id, first_name, last_name FROM employees WHERE user_id = ?', [userId]);
-      if (employees.length === 0) return notFound(res, 'Employee not found');
+     let item;
+     if (['SUPER_ADMIN', 'HR_ADMIN'].includes(userRole)) {
+       const [items] = await pool.query(
+         `SELECT pi.*, pr.month, pr.year, pr.status as run_status,
+                 e.first_name, e.last_name, e.employee_id, e.designation_id, e.department_id,
+                 d.name as department_name, des.title as designation_title,
+                 e.bank_name, e.bank_account_number, e.bank_account_name, e.bank_ifsc, e.bank_branch,
+                 e.pan_number, e.pf_number, e.uan_number, e.esi_number
+          FROM payroll_items pi
+          JOIN payroll_runs pr ON pi.payroll_run_id = pr.id
+          JOIN employees e ON pi.employee_id = e.id
+          LEFT JOIN departments d ON e.department_id = d.id
+          LEFT JOIN designations des ON e.designation_id = des.id
+          WHERE pi.id = ?`,
+         [id]
+       );
+       if (items.length === 0) return notFound(res, 'Payslip not found');
+       item = items[0];
+     } else {
+       const [employees] = await pool.query('SELECT id, employee_id, first_name, last_name FROM employees WHERE user_id = ?', [userId]);
+       if (employees.length === 0) return notFound(res, 'Employee not found');
 
-      const [items] = await pool.query(
-        `SELECT pi.*, pr.month, pr.year, pr.status as run_status,
-                e.first_name, e.last_name, e.employee_id, e.designation_id, e.department_id,
-                d.name as department_name, des.title as designation_title
-         FROM payroll_items pi
-         JOIN payroll_runs pr ON pi.payroll_run_id = pr.id
-         JOIN employees e ON pi.employee_id = e.id
-         LEFT JOIN departments d ON e.department_id = d.id
-         LEFT JOIN designations des ON e.designation_id = des.id
-         WHERE pi.id = ? AND pi.employee_id = ?`,
-        [id, employees[0].id]
-      );
+       const [items] = await pool.query(
+         `SELECT pi.*, pr.month, pr.year, pr.status as run_status,
+                 e.first_name, e.last_name, e.employee_id, e.designation_id, e.department_id,
+                 d.name as department_name, des.title as designation_title,
+                 e.bank_name, e.bank_account_number, e.bank_account_name, e.bank_ifsc, e.bank_branch,
+                 e.pan_number, e.pf_number, e.uan_number, e.esi_number
+          FROM payroll_items pi
+          JOIN payroll_runs pr ON pi.payroll_run_id = pr.id
+          JOIN employees e ON pi.employee_id = e.id
+          LEFT JOIN departments d ON e.department_id = d.id
+          LEFT JOIN designations des ON e.designation_id = des.id
+          WHERE pi.id = ? AND pi.employee_id = ?`,
+         [id, employees[0].id]
+       );
       if (items.length === 0) return notFound(res, 'Payslip not found');
       item = items[0];
     }
@@ -218,92 +223,51 @@ const downloadPayslip = async (req, res) => {
     const deductionsBreakdown = typeof item.deductions_breakdown === 'string' ? JSON.parse(item.deductions_breakdown) : (item.deductions_breakdown || []);
     const employerBreakdown = typeof item.employer_contributions === 'string' ? JSON.parse(item.employer_contributions) : (item.employer_contributions || []);
 
-    const doc = new PDFDocument({ margin: 40, size: 'A4' });
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename=payslip_${item.employee_id}_${item.month}_${item.year}.pdf`);
-    doc.pipe(res);
-
     const companyName = settings.company_name || 'Enterprise HRMS Pvt. Ltd.';
     const companyAddress = settings.company_address || '';
+    const monthKey = `${MONTHS[item.month] || item.month} ${item.year}`;
 
-    // Header: logo + company details
-    const startY = doc.y;
-    let logoBottom = startY;
-    if (settings.company_logo) {
-      try {
-        const logoPath = path.join(__dirname, '..', settings.company_logo.replace(/^\//, ''));
-        if (fs.existsSync(logoPath)) {
-          // Constrain the logo to a 55x55 box (preserves aspect ratio)
-          doc.image(logoPath, 40, startY, { fit: [55, 55] });
-          logoBottom = startY + 55;
-        }
-      } catch (_) { /* ignore missing/unsupported logo */ }
-    }
+    const buffer = await buildSlipPdfBuffer({
+      companyName,
+      companyAddress,
+      companyLogo: settings.company_logo,
+      monthKey,
+      employee: {
+        name: `${item.first_name || ''} ${item.last_name || ''}`.trim(),
+        employee_id: item.employee_id,
+        department: item.department_name,
+        designation: item.designation_title,
+        first_name: item.first_name,
+        last_name: item.last_name,
+        bank_name: item.bank_name,
+        bank_account_number: item.bank_account_number,
+        bank_account_name: item.bank_account_name,
+        bank_ifsc: item.bank_ifsc,
+        bank_branch: item.bank_branch,
+        pan_number: item.pan_number,
+        pf_number: item.pf_number,
+        uan_number: item.uan_number,
+        esi_number: item.esi_number
+      },
+      earnings: earningsBreakdown,
+      deductions: deductionsBreakdown,
+      employer: employerBreakdown,
+      totals: {
+        gross: item.gross_pay,
+        deductions: item.total_deductions,
+        net: item.net_pay,
+        total_earnings: item.total_earnings,
+        total_deductions: item.total_deductions,
+        employer: item.employer_total
+      },
+      paidDays: item.paid_days,
+      workingDays: item.working_days,
+      createdAt: item.processed_at || item.created_at
+    });
 
-    doc.fontSize(18).font('Helvetica-Bold').text(companyName, 105, startY, { width: 420 });
-    doc.fontSize(9).font('Helvetica').text(companyAddress, 105, doc.y, { width: 420 });
-
-    // Separator line placed below the taller of the logo or the text block
-    doc.y = Math.max(logoBottom, doc.y) + 12;
-    doc.moveTo(40, doc.y).lineTo(555, doc.y).stroke();
-    doc.moveDown(0.4);
-    doc.fontSize(15).font('Helvetica-Bold').text(`Payslip for ${MONTHS[item.month] || item.month} ${item.year}`, { align: 'center' });
-    doc.moveDown(0.5);
-
-    // Employee & Pay period block
-    const empName = `${item.first_name} ${item.last_name}`;
-    doc.fontSize(10).font('Helvetica');
-    doc.text('Employee Name:', 40, doc.y).text(empName, 140, doc.y - doc.currentLineHeight());
-    doc.text('Employee ID:', 40, doc.y).text(item.employee_id, 140, doc.y - doc.currentLineHeight());
-    doc.text('Department:', 40, doc.y).text(item.department_name || 'N/A', 140, doc.y - doc.currentLineHeight());
-    doc.text('Designation:', 40, doc.y).text(item.designation_title || 'N/A', 140, doc.y - doc.currentLineHeight());
-    doc.text('Pay Period:', 40, doc.y).text(`${MONTHS[item.month] || item.month} ${item.year}`, 140, doc.y - doc.currentLineHeight());
-    doc.text('Days (Paid/Working):', 40, doc.y).text(`${item.paid_days} / ${item.working_days}`, 140, doc.y - doc.currentLineHeight());
-    doc.moveDown(0.5);
-
-    // Earnings table
-    const drawTable = (title, rows, totalLabel, totalValue) => {
-      doc.moveTo(40, doc.y).lineTo(555, doc.y).stroke();
-      doc.moveDown(0.3);
-      doc.fontSize(12).font('Helvetica-Bold').text(title, { underline: true });
-      doc.moveDown(0.3);
-      let total = 0;
-      rows.forEach(r => {
-        doc.fontSize(10).font('Helvetica').text(r.name, 45, doc.y, { continued: true });
-        doc.text(`Rs. ${parseFloat(r.amount || 0).toLocaleString()}`, { align: 'right' });
-        total += parseFloat(r.amount || 0);
-      });
-      doc.moveDown(0.2);
-      doc.font('Helvetica-Bold').text(totalLabel, 45, doc.y, { continued: true });
-      doc.text(`Rs. ${total.toLocaleString()}`, { align: 'right' });
-      doc.moveDown(0.6);
-      void totalValue;
-    };
-
-    drawTable('Earnings', earningsBreakdown, 'Gross Earnings', item.gross_pay);
-    drawTable('Deductions', deductionsBreakdown, 'Total Deductions', item.total_deductions);
-    if (employerBreakdown.length > 0) {
-      drawTable('Employer Contributions', employerBreakdown, 'Total Employer Contribution', item.employer_total);
-    }
-
-    // Summary
-    doc.moveTo(40, doc.y).lineTo(555, doc.y).stroke();
-    doc.moveDown(0.4);
-    doc.fontSize(13).font('Helvetica-Bold').fillColor('#2563eb');
-    doc.text('Gross Salary:', 45, doc.y, { continued: true });
-    doc.text(`Rs. ${parseFloat(item.gross_pay || 0).toLocaleString()}`, { align: 'right' });
-    doc.text('Total Deductions:', 45, doc.y, { continued: true });
-    doc.text(`Rs. ${parseFloat(item.total_deductions || 0).toLocaleString()}`, { align: 'right' });
-    doc.fontSize(15).text('Net Salary:', 45, doc.y, { continued: true });
-    doc.text(`Rs. ${parseFloat(item.net_pay || 0).toLocaleString()}`, { align: 'right' });
-    doc.fillColor('#000');
-    doc.moveDown(1.5);
-
-    doc.fontSize(8).font('Helvetica').fillColor('#666');
-    doc.text('This is a computer-generated payslip and does not require a signature.', { align: 'center' });
-    doc.text(`Generated on: ${new Date().toLocaleDateString()}`, { align: 'center' });
-
-    doc.end();
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename=payslip_${item.employee_id}_${item.month}_${item.year}.pdf`);
+    res.send(Buffer.from(buffer));
   } catch (err) {
     console.error('Download payslip error:', err);
     return error(res, 'Failed to download payslip');
@@ -337,7 +301,9 @@ const getAllPayslips = async (req, res) => {
               pr.month, pr.year, pr.status as run_status,
               e.first_name, e.last_name, CONCAT(e.first_name, ' ', e.last_name) as employee_name,
               e.employee_id as employee_number,
-              d.name as department_name, des.title as designation_title
+              d.name as department_name, des.title as designation_title,
+              e.bank_name, e.bank_account_number as bank_account_no, e.bank_account_name, e.bank_ifsc, e.bank_branch,
+              e.pan_number, e.pf_number, e.uan_number as pf_uan, e.esi_number
        FROM payroll_items pi
        JOIN payroll_runs pr ON pi.payroll_run_id = pr.id
        JOIN employees e ON pi.employee_id = e.id
@@ -750,7 +716,10 @@ const updatePayslip = async (req, res) => {
       gross_pay,
       paid_days,
       lop_days,
-      status
+      status,
+      earnings_breakdown,
+      deductions_breakdown,
+      employer_contributions
     } = req.body;
 
     const [item] = await connection.query('SELECT id, payroll_run_id FROM payroll_items WHERE id = ?', [id]);
@@ -780,6 +749,9 @@ const updatePayslip = async (req, res) => {
       values.push(status);
       if (status === 'PAID') fields.push("paid_at = COALESCE(paid_at, NOW())");
     }
+    if (earnings_breakdown !== undefined) { fields.push('earnings_breakdown = ?'); values.push(JSON.stringify(earnings_breakdown)); }
+    if (deductions_breakdown !== undefined) { fields.push('deductions_breakdown = ?'); values.push(JSON.stringify(deductions_breakdown)); }
+    if (employer_contributions !== undefined) { fields.push('employer_contributions = ?'); values.push(JSON.stringify(employer_contributions)); }
 
     if (fields.length > 0) {
       values.push(id);

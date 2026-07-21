@@ -18,7 +18,7 @@ export default function MyProfile() {
       setLoading(true);
       setError(false);
       const res = await employeeAPI.getMyProfile();
-      const data = res.data.data;
+      const data = res.data?.data || res.data;
       setProfile(data);
       
       // Initialize only the fields the employee is allowed to edit

@@ -1,19 +1,6 @@
 const pool = require('../config/database');
 const { success, created, badRequest, notFound, error, paginated } = require('../utils/response');
-const { generateId, isWithinRadius, calculateWorkingHours, calculateLateMinutes, getCurrentDate, daysBetween } = require('../utils/helpers');
-
-/**
- * Get office locations for geofence check
- */
-const getOfficeLocations = async (req, res) => {
-  try {
-    const [offices] = await pool.query('SELECT * FROM office_locations WHERE is_active = 1');
-    return success(res, offices);
-  } catch (err) {
-    console.error('Get office locations error:', err);
-    return error(res, 'Failed to fetch office locations');
-  }
-};
+const { generateId, calculateWorkingHours, calculateLateMinutes, getCurrentDate, daysBetween } = require('../utils/helpers');
 
 /**
  * Check In
@@ -40,22 +27,6 @@ const checkIn = async (req, res) => {
 
     if (existing.length > 0 && existing[0].check_in_time) {
       return badRequest(res, 'You have already checked in today');
-    }
-
-    // Get office location for geofence
-    const [offices] = await pool.query('SELECT * FROM office_locations WHERE is_active = 1 LIMIT 1');
-    if (offices.length > 0) {
-      const office = offices[0];
-      if (latitude && longitude) {
-        const withinRadius = isWithinRadius(
-          parseFloat(latitude), parseFloat(longitude),
-          parseFloat(office.latitude), parseFloat(office.longitude),
-          office.radius
-        );
-        if (!withinRadius) {
-          return badRequest(res, 'You are outside the office premises. Please check in from the office location.');
-        }
-      }
     }
 
     // Get office start time from settings
@@ -136,22 +107,6 @@ const checkOut = async (req, res) => {
     const checkOutMinutes = now.getMinutes();
     if (checkOutHour < 18) {
       return badRequest(res, 'Check-out is only allowed after 6:00 PM');
-    }
-
-    // Get office location for geofence
-    const [offices] = await pool.query('SELECT * FROM office_locations WHERE is_active = 1 LIMIT 1');
-    if (offices.length > 0) {
-      const office = offices[0];
-      if (latitude && longitude) {
-        const withinRadius = isWithinRadius(
-          parseFloat(latitude), parseFloat(longitude),
-          parseFloat(office.latitude), parseFloat(office.longitude),
-          office.radius
-        );
-        if (!withinRadius) {
-          return badRequest(res, 'You are outside the office premises. Please check out from the office location.');
-        }
-      }
     }
 
     // Calculate working hours
@@ -380,7 +335,6 @@ const correctAttendance = async (req, res) => {
 };
 
 module.exports = {
-  getOfficeLocations,
   checkIn,
   checkOut,
   getTodayAttendance,

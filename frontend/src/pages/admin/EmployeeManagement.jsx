@@ -19,7 +19,7 @@ export default function EmployeeManagement() {
     department_id: '', designation_id: '', reporting_manager_id: '',
     joining_date: '', employment_type: 'Full-Time', work_location: '',
     bank_account_name: '', bank_account_number: '', bank_name: '', bank_ifsc: '', bank_branch: '',
-    pan_number: '', aadhar_number: '', basic_salary: ''
+    pan_number: '', aadhar_number: '', uan_number: '', pf_number: '', basic_salary: ''
   });
   const [createdCred, setCreatedCred] = useState(null);
 
@@ -78,7 +78,7 @@ export default function EmployeeManagement() {
       department_id: '', designation_id: '', reporting_manager_id: '',
       joining_date: '', employment_type: 'Full-Time', work_location: '',
       bank_account_name: '', bank_account_number: '', bank_name: '', bank_ifsc: '', bank_branch: '',
-      pan_number: '', aadhar_number: '', basic_salary: ''
+      pan_number: '', aadhar_number: '', uan_number: '', pf_number: '', basic_salary: ''
     });
   };
 
@@ -235,6 +235,46 @@ export default function EmployeeManagement() {
                   <div className="form-group">
                     <label className="form-label">Work Location</label>
                     <input className="form-input" value={formData.work_location} onChange={e => setFormData({...formData, work_location: e.target.value})} />
+                  </div>
+                </div>
+
+                <div style={{ marginTop: 8, fontWeight: 700, fontSize: 14 }}>Bank & Personal Details</div>
+                <div className="grid-2" style={{ marginTop: 8 }}>
+                  <div className="form-group">
+                    <label className="form-label">Bank Name</label>
+                    <input className="form-input" value={formData.bank_name} onChange={e => setFormData({...formData, bank_name: e.target.value})} />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Bank Account Number</label>
+                    <input className="form-input" value={formData.bank_account_number} onChange={e => setFormData({...formData, bank_account_number: e.target.value})} />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Account Holder Name</label>
+                    <input className="form-input" value={formData.bank_account_name} onChange={e => setFormData({...formData, bank_account_name: e.target.value})} />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">IFSC Code</label>
+                    <input className="form-input" value={formData.bank_ifsc} onChange={e => setFormData({...formData, bank_ifsc: e.target.value})} />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Bank Branch</label>
+                    <input className="form-input" value={formData.bank_branch} onChange={e => setFormData({...formData, bank_branch: e.target.value})} />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">PAN Number</label>
+                    <input className="form-input" value={formData.pan_number} onChange={e => setFormData({...formData, pan_number: e.target.value})} />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Aadhar Number</label>
+                    <input className="form-input" value={formData.aadhar_number} onChange={e => setFormData({...formData, aadhar_number: e.target.value})} />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">UAN Number</label>
+                    <input className="form-input" value={formData.uan_number} onChange={e => setFormData({...formData, uan_number: e.target.value})} />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">PF Number</label>
+                    <input className="form-input" value={formData.pf_number} onChange={e => setFormData({...formData, pf_number: e.target.value})} />
                   </div>
                 </div>
               </div>

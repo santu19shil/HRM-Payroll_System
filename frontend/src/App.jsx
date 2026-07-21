@@ -1,5 +1,5 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { Toaster } from 'react-hot-toast';
 
@@ -7,7 +7,6 @@ import { Toaster } from 'react-hot-toast';
 import DashboardLayout from './components/DashboardLayout';
 
 // Landing + Auth Pages
-import LandingPage from './pages/LandingPage';
 import PreviewPage from './pages/PreviewPage';
 import LoginPage from './pages/LoginPage';
 import ChangePasswordPage from './pages/ChangePasswordPage';
@@ -38,6 +37,11 @@ import MyNotifications from './pages/employee/MyNotifications';
 
 // Protected Route
 import ProtectedRoute from './components/ProtectedRoute';
+
+function LandingRedirect() {
+  useEffect(() => { window.location.href = '/landing.html'; }, []);
+  return null;
+}
 
 export default function App() {
   return (
@@ -80,8 +84,8 @@ export default function App() {
             <Route path="/employee/notifications" element={<MyNotifications />} />
           </Route>
 
-          {/* Landing + Preview (no login) */}
-          <Route path="/" element={<LandingPage />} />
+          {/* Landing (static 3D page served from public/landing.html) */}
+          <Route path="/" element={<LandingRedirect />} />
           <Route path="/preview" element={<PreviewPage />} />
         </Routes>
       </AuthProvider>

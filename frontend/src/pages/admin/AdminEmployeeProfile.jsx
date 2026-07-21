@@ -3,7 +3,6 @@ import { employeeAPI, departmentAPI, designationAPI } from '../../services/api';
 import toast from 'react-hot-toast';
 
 const buildInitialForm = (p) => ({
-  // employee-owned/self-service fields
   phone: p?.contactNumber || '',
   address: p?.address || '',
   city: p?.city || '',
@@ -11,7 +10,16 @@ const buildInitialForm = (p) => ({
   postalCode: p?.postalCode || '',
   emergencyContactName: p?.emergencyContactName || '',
   emergencyContactPhone: p?.emergencyContactPhone || '',
-  emergencyContactRelation: p?.emergencyContactRelation || ''
+  emergencyContactRelation: p?.emergencyContactRelation || '',
+  bank_name: p?.bank_name || '',
+  bank_account_number: p?.bank_account_number || '',
+  bank_account_name: p?.bank_account_name || '',
+  bank_ifsc: p?.bank_ifsc || '',
+  bank_branch: p?.bank_branch || '',
+  pan_number: p?.pan_number || '',
+  aadhar_number: p?.aadhar_number || '',
+  uan_number: p?.uan_number || '',
+  pf_number: p?.pf_number || ''
 });
 
 export default function AdminEmployeeProfile({ employeeId, onClose }) {
@@ -19,9 +27,10 @@ export default function AdminEmployeeProfile({ employeeId, onClose }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [previewPic, setPreviewPic] = useState(null);
+  const [saving, setSaving] = useState(false);
 
   const [formData, setFormData] = useState({});
-  const isFormDisabled = true; // per requirement: HR can view only
+  const isFormDisabled = false;
 
   const initials = useMemo(() => {
     if (!profile?.name) return '?';
@@ -74,6 +83,36 @@ export default function AdminEmployeeProfile({ employeeId, onClose }) {
   const department = profile.department_name || profile.department || 'N/A';
   const designation = profile.designation_title || profile.designationId || 'N/A';
 
+  const handleSaveProfile = async () => {
+    setSaving(true);
+    try {
+      await employeeAPI.update(employeeId, {
+        phone: formData.phone,
+        address: formData.address,
+        city: formData.city,
+        state: formData.state,
+        postal_code: formData.postalCode,
+        emergency_contact_name: formData.emergencyContactName,
+        emergency_contact_phone: formData.emergencyContactPhone,
+        emergency_contact_relation: formData.emergencyContactRelation,
+        bank_name: formData.bank_name,
+        bank_account_number: formData.bank_account_number,
+        bank_account_name: formData.bank_account_name,
+        bank_ifsc: formData.bank_ifsc,
+        bank_branch: formData.bank_branch,
+        pan_number: formData.pan_number,
+        aadhar_number: formData.aadhar_number,
+        uan_number: formData.uan_number,
+        pf_number: formData.pf_number
+      });
+      toast.success('Profile updated successfully');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to update profile');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <div style={{ minHeight: 300 }}>
       <div className="profile-header">
@@ -112,7 +151,7 @@ export default function AdminEmployeeProfile({ employeeId, onClose }) {
 
       <div className="card">
         <div className="card-header">
-          <div className="card-title">Personal Information (View Only)</div>
+          <div className="card-title">Personal Information</div>
         </div>
         <div className="grid-2">
           <div className="form-group">
@@ -221,22 +260,53 @@ export default function AdminEmployeeProfile({ employeeId, onClose }) {
 
       <div className="card" style={{ marginTop: 16 }}>
         <div className="card-header">
-          <div className="card-title">Work Information (View Only)</div>
+          <div className="card-title">Bank & Personal Details</div>
         </div>
         <div className="grid-2">
           <div className="form-group">
-            <label className="form-label">Joining Date</label>
-            <input className="form-input" value={profile.joiningDate || profile.joining_date || '-'} disabled />
+            <label className="form-label">Bank Name</label>
+            <input className="form-input" value={formData.bank_name} onChange={(e) => setFormData({ ...formData, bank_name: e.target.value })} disabled={isFormDisabled} />
           </div>
           <div className="form-group">
-            <label className="form-label">Employment Type</label>
-            <input className="form-input" value={profile.employmentType || profile.employment_type || '-'} disabled />
+            <label className="form-label">Bank Account Number</label>
+            <input className="form-input" value={formData.bank_account_number} onChange={(e) => setFormData({ ...formData, bank_account_number: e.target.value })} disabled={isFormDisabled} />
           </div>
-          <div className="form-group" style={{ gridColumn: 'span 2' }}>
-            <label className="form-label">Work Location</label>
-            <input className="form-input" value={profile.workLocation || profile.work_location || '-'} disabled />
+          <div className="form-group">
+            <label className="form-label">Account Holder Name</label>
+            <input className="form-input" value={formData.bank_account_name} onChange={(e) => setFormData({ ...formData, bank_account_name: e.target.value })} disabled={isFormDisabled} />
+          </div>
+          <div className="form-group">
+            <label className="form-label">IFSC Code</label>
+            <input className="form-input" value={formData.bank_ifsc} onChange={(e) => setFormData({ ...formData, bank_ifsc: e.target.value })} disabled={isFormDisabled} />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Bank Branch</label>
+            <input className="form-input" value={formData.bank_branch} onChange={(e) => setFormData({ ...formData, bank_branch: e.target.value })} disabled={isFormDisabled} />
+          </div>
+          <div className="form-group">
+            <label className="form-label">PAN Number</label>
+            <input className="form-input" value={formData.pan_number} onChange={(e) => setFormData({ ...formData, pan_number: e.target.value })} disabled={isFormDisabled} />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Aadhar Number</label>
+            <input className="form-input" value={formData.aadhar_number} onChange={(e) => setFormData({ ...formData, aadhar_number: e.target.value })} disabled={isFormDisabled} />
+          </div>
+          <div className="form-group">
+            <label className="form-label">UAN Number</label>
+            <input className="form-input" value={formData.uan_number} onChange={(e) => setFormData({ ...formData, uan_number: e.target.value })} disabled={isFormDisabled} />
+          </div>
+          <div className="form-group">
+            <label className="form-label">PF Number</label>
+            <input className="form-input" value={formData.pf_number} onChange={(e) => setFormData({ ...formData, pf_number: e.target.value })} disabled={isFormDisabled} />
           </div>
         </div>
+        {!isFormDisabled && (
+          <div style={{ marginTop: 16, textAlign: 'right' }}>
+            <button className="btn btn-primary" onClick={handleSaveProfile} disabled={saving}>
+              {saving ? 'Saving...' : 'Save Changes'}
+            </button>
+          </div>
+        )}
       </div>
 
       {previewPic && (

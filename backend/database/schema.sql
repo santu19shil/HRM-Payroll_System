@@ -12,19 +12,6 @@ USE hr_payroll_system;
 -- CORE TABLES
 -- ============================================
 
--- Office Locations (for geofence attendance)
-CREATE TABLE IF NOT EXISTS office_locations (
-  id VARCHAR(36) PRIMARY KEY,
-  name VARCHAR(255) NOT NULL,
-  latitude DECIMAL(10, 8) NOT NULL,
-  longitude DECIMAL(11, 8) NOT NULL,
-  radius INT NOT NULL DEFAULT 100 COMMENT 'Radius in meters',
-  address TEXT,
-  is_active TINYINT(1) NOT NULL DEFAULT 1,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-) ENGINE=InnoDB;
-
 -- Departments
 CREATE TABLE IF NOT EXISTS departments (
   id VARCHAR(36) PRIMARY KEY,
@@ -138,10 +125,6 @@ CREATE TABLE IF NOT EXISTS attendance (
   date DATE NOT NULL,
   check_in_time DATETIME NULL,
   check_out_time DATETIME NULL,
-  check_in_latitude DECIMAL(10, 8) NULL,
-  check_in_longitude DECIMAL(11, 8) NULL,
-  check_out_latitude DECIMAL(10, 8) NULL,
-  check_out_longitude DECIMAL(11, 8) NULL,
   status ENUM('Present', 'Late', 'Absent', 'Holiday', 'On Leave', 'Missing Check Out', 'Week Off') NOT NULL DEFAULT 'Absent',
   working_hours DECIMAL(5, 2) DEFAULT 0,
   overtime_hours DECIMAL(5, 2) DEFAULT 0,
@@ -160,8 +143,6 @@ CREATE TABLE IF NOT EXISTS attendance_logs (
   attendance_id VARCHAR(36) NULL,
   event_type ENUM('CHECK_IN', 'CHECK_OUT') NOT NULL,
   timestamp DATETIME NOT NULL,
-  latitude DECIMAL(10, 8) NULL,
-  longitude DECIMAL(11, 8) NULL,
   ip_address VARCHAR(45),
   device_info VARCHAR(255),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -513,11 +494,6 @@ INSERT INTO settings (id, setting_key, setting_value, setting_group, description
 ('set_13', 'esi_employer_contribution', '3.25', 'Payroll', 'Employer ESI contribution percentage'),
 ('set_14', 'company_logo', '', 'Company', 'Company logo file path')
 ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value);
-
--- Insert default office location
-INSERT INTO office_locations (id, name, latitude, longitude, radius, address) VALUES
-('office_1', 'Head Office', 12.9716, 77.5946, 100, '123 Business Park, MG Road, Bangalore - 560001')
-ON DUPLICATE KEY UPDATE name = VALUES(name);
 
 -- Create default Super Admin user (password: Admin@123)
 -- Password hash for 'Admin@123' with bcrypt

@@ -1,11 +1,12 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import {
-  UserCheck, CalendarX, Wallet, FileText, CalendarClock, Download, Megaphone, TrendingUp
+  UserCheck, CalendarX, Wallet, FileText, CalendarClock, Download, Megaphone
 } from 'lucide-react';
 import { attendanceAPI, leaveAPI } from '../../services/api';
 import toast from 'react-hot-toast';
+
 
 const TONE = { blue: 'blue', green: 'green', yellow: 'yellow', red: 'red', purple: 'purple', indigo: 'indigo' };
 
@@ -30,9 +31,6 @@ function StatGrid({ stats, onJump }) {
             <div className="stat-content">
               <div className="stat-label">{s.label}</div>
               <div className="stat-value">{s.value}</div>
-              <div className="stat-change positive" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <TrendingUp size={13} /> +4.2% vs last month
-              </div>
             </div>
           </div>
         );
@@ -84,42 +82,28 @@ export default function EmployeeDashboard() {
   };
 
   const handleCheckIn = async () => {
-    if (!navigator.geolocation) {
-      toast.error('Geolocation is required for attendance');
-      return;
-    }
     setCheckingIn(true);
     try {
-      const position = await new Promise((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 10000 });
-      });
-      const res = await attendanceAPI.checkIn({ latitude: position.coords.latitude, longitude: position.coords.longitude });
+      const res = await attendanceAPI.checkIn({});
       toast.success('Check-in successful!');
       setAttendance(res.data.data);
       loadData();
     } catch (err) {
-      toast.error(err.code === 1 ? 'Location permission denied. Please enable GPS.' : err.response?.data?.message || 'Check-in failed');
+      toast.error(err.response?.data?.message || 'Check-in failed');
     } finally {
       setCheckingIn(false);
     }
   };
 
   const handleCheckOut = async () => {
-    if (!navigator.geolocation) {
-      toast.error('Geolocation is required for attendance');
-      return;
-    }
     setCheckingOut(true);
     try {
-      const position = await new Promise((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 10000 });
-      });
-      const res = await attendanceAPI.checkOut({ latitude: position.coords.latitude, longitude: position.coords.longitude });
+      const res = await attendanceAPI.checkOut({});
       toast.success('Check-out successful!');
       setAttendance(res.data.data);
       loadData();
     } catch (err) {
-      toast.error(err.code === 1 ? 'Location permission denied' : err.response?.data?.message || 'Check-out failed');
+      toast.error(err.response?.data?.message || 'Check-out failed');
     } finally {
       setCheckingOut(false);
     }
@@ -130,6 +114,28 @@ export default function EmployeeDashboard() {
   const isCheckedIn = attendance?.check_in_time && !attendance?.check_out_time;
   const canCheckIn = !attendance?.check_in_time;
   const canCheckOut = isCheckedIn;
+
+  const checkInButton = (
+    <button
+      className="btn btn-primary"
+      onClick={handleCheckIn}
+      disabled={!canCheckIn || checkingIn}
+      style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+    >
+      {checkingIn ? 'Checking in...' : 'Check In'}
+    </button>
+  );
+
+  const checkOutButton = (
+    <button
+      className="btn btn-primary"
+      onClick={handleCheckOut}
+      disabled={!canCheckOut || checkingOut}
+      style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+    >
+      {checkingOut ? 'Checking out...' : 'Check Out'}
+    </button>
+  );
 
   const empStats = [
     { label: 'My Attendance', value: summary ? `${Math.round((summary.present_days || 0) / Math.max(1, (summary.present_days || 0) + (summary.absent_days || 0)) * 100)}%` : '—', icon: UserCheck, tone: 'green', to: '/employee/attendance' },
@@ -173,7 +179,35 @@ export default function EmployeeDashboard() {
         <div className="card">
           <div className="card-header">
             <div>
+              <div className="card-title">My Attendance</div>
+              <div className="card-subtitle">Check in/out from your dashboard</div>
+            </div>
+            <CalendarClock size={18} color="var(--muted)" />
+          </div>
+
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', padding: 12 }}>
+            {checkInButton}
+            {checkOutButton}
+          </div>
+
+          {attendance?.check_in_time && (
+            <div style={{ padding: '0 12px 12px', color: 'var(--text-secondary)', fontSize: 13 }}>
+              Checked in: {new Date(attendance.check_in_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+              {attendance?.check_out_time ? (
+                <>
+                  <span style={{ margin: '0 8px' }}>•</span>
+                  Checked out: {new Date(attendance.check_out_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                </>
+              ) : null}
+            </div>
+          )}
+        </div>
+
+        <div className="card">
+          <div className="card-header">
+            <div>
               <div className="card-title">My Leave Balance</div>
+
               <div className="card-subtitle">Current cycle</div>
             </div>
             <CalendarClock size={18} color="var(--muted)" />
@@ -195,29 +229,6 @@ export default function EmployeeDashboard() {
                 ))}
               </tbody>
             </table>
-          </div>
-        </div>
-
-        <div className="card">
-          <div className="card-header">
-            <div>
-              <div className="card-title">Quick Actions</div>
-              <div className="card-subtitle">Common tasks</div>
-            </div>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <button className="btn btn-sm" style={{ justifyContent: 'flex-start' }} onClick={() => navigate('/employee/leaves')}>
-              <CalendarClock size={16} /> Apply for Leave
-            </button>
-            <button className="btn btn-sm" style={{ justifyContent: 'flex-start' }} onClick={() => navigate('/employee/payroll')}>
-              <Download size={16} /> Download Payslip
-            </button>
-            <button className="btn btn-sm" style={{ justifyContent: 'flex-start' }} onClick={() => navigate('/employee/documents')}>
-              <FileText size={16} /> Upload Document
-            </button>
-            <button className="btn btn-sm" style={{ justifyContent: 'flex-start' }} onClick={() => navigate('/employee/notifications')}>
-              <Megaphone size={16} /> View Notices
-            </button>
           </div>
         </div>
       </div>

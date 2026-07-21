@@ -9,10 +9,17 @@ const fs = require('fs');
 
 const allowedOrigins = new Set([
   process.env.FRONTEND_URL,
+
+  // Local dev ports (Vite may auto-increment if the port is busy)
   'http://localhost:5173',
+  'http://localhost:5174',
+  'http://localhost:5175',
+  'http://localhost:5176',
+  'http://localhost:5177',
   'http://localhost:4173',
+
   // Allow common Vite dev tunnel origin(s) used during testing
-  'https://g9tv6fk3-5173.inc1.devtunnels.ms'
+  'https://g9tv6fk3-5173.inc1.devtunnels.ms',
 ].filter(Boolean));
 
 const corsOptions = {
@@ -41,6 +48,7 @@ const documentRoutes = require('./routes/documentRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const noticeRoutes = require('./routes/noticeRoutes');
 const settingsRoutes = require('./routes/settingsRoutes');
+const chatRoutes = require('./routes/chatRoutes');
 const runMigrations = require('./database/migrate');
 
 const app = express();
@@ -122,6 +130,7 @@ app.use('/api/documents', documentRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/notices', noticeRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/chat', chatRoutes);
 
 
 // ============================================

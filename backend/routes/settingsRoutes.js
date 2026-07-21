@@ -36,13 +36,24 @@ const getSettings = async (req, res) => {
     query += ' ORDER BY setting_group, setting_key';
     
     const [settings] = await pool.query(query, params);
-    // Convert to key-value object
     const settingsObj = {};
     settings.forEach(s => { settingsObj[s.setting_key] = s.setting_value; });
     return success(res, { settings: settingsObj, settingsList: settings });
   } catch (err) {
     console.error('Get settings error:', err);
     return error(res, 'Failed to fetch settings');
+  }
+};
+
+const getPublicSettings = async (req, res) => {
+  try {
+    const [settings] = await pool.query("SELECT setting_key, setting_value FROM settings WHERE setting_key IN ('company_name', 'company_logo', 'company_address')");
+    const settingsObj = {};
+    settings.forEach(s => { settingsObj[s.setting_key] = s.setting_value; });
+    return success(res, settingsObj);
+  } catch (err) {
+    console.error('Get public settings error:', err);
+    return error(res, 'Failed to fetch public settings');
   }
 };
 
@@ -77,6 +88,7 @@ const uploadLogo = async (req, res) => {
 };
 
 router.get('/', authenticate, getSettings);
+router.get('/public', getPublicSettings);
 router.put('/', authenticate, authorizeHR, updateSettings);
 router.post('/logo', authenticate, authorizeHR, upload.single('logo'), uploadLogo);
 

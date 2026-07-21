@@ -1,12 +1,17 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { Search } from 'lucide-react';
 
 export default function TopBar() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const isAdmin = (user?.role_name || user?.role) === 'SUPER_ADMIN' || (user?.role_name || user?.role) === 'HR_ADMIN';
+  const [now, setNow] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   const handleLogout = async () => {
     await logout();
@@ -48,12 +53,13 @@ export default function TopBar() {
     <header className="topbar">
       <div className="topbar-left">
         <h1 className="topbar-title">{getPageTitle()}</h1>
-        <div className="topbar-search">
-          <span className="search-bar-icon"><Search size={16} color="var(--muted)" /></span>
-          <input placeholder="Search employees, documents, payroll..." />
-        </div>
       </div>
       <div className="topbar-right">
+        <span className="topbar-datetime">
+          {now.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
+          &nbsp;|&nbsp;
+          {now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}
+        </span>
         <span className="role-pill">{roleLabel}</span>
         <div className="topbar-avatar" title={user?.email || ''}>{initials}</div>
         <button className="btn btn-sm" onClick={handleLogout}>

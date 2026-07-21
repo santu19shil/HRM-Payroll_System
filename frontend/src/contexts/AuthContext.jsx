@@ -8,12 +8,28 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
+  // Dev/helper: some runs may accidentally save token under a wrong key (e.g. "accessoken").
+  // Normalize it so the rest of the app (axios interceptor, /api/chat auth middleware) works.
+  const normalizeTokenKey = () => {
+    const correct = localStorage.getItem('accessToken');
+    if (correct) return correct;
+
+    const wrong = localStorage.getItem('accessoken');
+    if (wrong) {
+      localStorage.setItem('accessToken', wrong);
+      return wrong;
+    }
+
+    return null;
+  };
+
   const loadUser = useCallback(async () => {
-    const token = localStorage.getItem('accessToken');
+    const token = normalizeTokenKey();
     if (!token) {
       setLoading(false);
       return;
     }
+
 
     try {
       const response = await authAPI.getMe();
@@ -34,7 +50,9 @@ export function AuthProvider({ children }) {
         setUser(null);
         setIsAuthenticated(false);
       }
-      // For network/server errors, keep the user logged in and retry later
+      // For network/server errors, mark auth as false so protected routes show login
+      setUser(null);
+      setIsAuthenticated(false);
     } finally {
       setLoading(false);
     }

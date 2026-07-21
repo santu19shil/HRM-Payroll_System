@@ -29,7 +29,7 @@ export default function PayrollManagement() {
   const [viewPayslip, setViewPayslip] = useState(null);
   const [runDetails, setRunDetails] = useState([]);
   const [editPayslip, setEditPayslip] = useState(null);
-  const [editForm, setEditForm] = useState({ basic_salary: '', total_earnings: '', total_deductions: '', net_pay: '', paid_days: '', lop_days: '', status: 'PENDING' });
+  const [editForm, setEditForm] = useState({ basic_salary: '', total_earnings: '', total_deductions: '', net_pay: '', paid_days: '', lop_days: '', status: 'PENDING', earnings_breakdown: [], deductions_breakdown: [], employer_contributions: [] });
   const [savingPayslip, setSavingPayslip] = useState(false);
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [tab, setTab] = useState('payslips');
@@ -176,7 +176,10 @@ export default function PayrollManagement() {
       net_pay: p.net_pay ?? '',
       paid_days: p.paid_days ?? '',
       lop_days: p.lop_days ?? '',
-      status: p.status || 'PENDING'
+      status: p.status || 'PENDING',
+      earnings_breakdown: safeParse(p.earnings_breakdown),
+      deductions_breakdown: safeParse(p.deductions_breakdown),
+      employer_contributions: safeParse(p.employer_contributions)
     });
   };
 
@@ -190,7 +193,10 @@ export default function PayrollManagement() {
         net_pay: Number(editForm.net_pay) || 0,
         paid_days: Number(editForm.paid_days) || 0,
         lop_days: Number(editForm.lop_days) || 0,
-        status: editForm.status
+        status: editForm.status,
+        earnings_breakdown: editForm.earnings_breakdown,
+        deductions_breakdown: editForm.deductions_breakdown,
+        employer_contributions: editForm.employer_contributions
       });
       toast.success('Payslip updated');
       setEditPayslip(null);
@@ -293,7 +299,7 @@ export default function PayrollManagement() {
         </div>
       </div>
 
-      <div className="table-container">
+      <div className="table-container allow-overflow">
         <table>
           <thead>
             <tr>
@@ -340,7 +346,7 @@ export default function PayrollManagement() {
         </div>
 
         {tab === 'payslips' ? (
-          <div className="table-container">
+          <div className="table-container allow-overflow">
             <table>
               <thead><tr><th>Employee</th><th>Period</th><th>Basic</th><th>Earnings</th><th>Deductions</th><th>Net Pay</th><th>Days</th><th>Status</th><th>Actions</th></tr></thead>
               <tbody>
@@ -373,7 +379,7 @@ export default function PayrollManagement() {
         ) : null}
 
         {tab === 'history' ? (
-          <div className="table-container">
+          <div className="table-container allow-overflow">
             <table>
               <thead><tr><th>Period</th><th>Employees</th><th>Gross Pay</th><th>Deductions</th><th>Tax</th><th>Net Pay</th><th>Status</th><th>Processed At</th><th></th></tr></thead>
               <tbody>
@@ -445,7 +451,7 @@ export default function PayrollManagement() {
               {loadingDetails ? (
                 <div style={{ textAlign: 'center', padding: 20 }}>Loading...</div>
               ) : (
-                <div className="table-container">
+                <div className="table-container allow-overflow">
                   <table>
                     <thead><tr><th>Employee</th><th>Basic</th><th>Earnings</th><th>Deductions</th><th>Net Pay</th><th>Days</th><th>Status</th></tr></thead>
                     <tbody>
@@ -687,6 +693,52 @@ export default function PayrollManagement() {
                     <option value="PAID">PAID</option>
                   </select>
                 </div>
+              </div>
+
+              <div style={{ marginTop: 16, padding: '16px', borderTop: '1px solid var(--border)' }}>
+                <div style={{ fontWeight: 700, marginBottom: 10 }}>Earnings Breakdown</div>
+                {(editForm.earnings_breakdown || []).map((row, i) => (
+                  <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'center' }}>
+                    <input className="form-input" value={row.name || ''} onChange={e => {
+                      const next = [...editForm.earnings_breakdown];
+                      next[i] = { ...next[i], name: e.target.value };
+                      setEditForm({ ...editForm, earnings_breakdown: next });
+                    }} placeholder="Name" style={{ flex: 1 }} />
+                    <input className="form-input" type="number" value={row.amount ?? ''} onChange={e => {
+                      const next = [...editForm.earnings_breakdown];
+                      next[i] = { ...next[i], amount: Number(e.target.value) || 0 };
+                      setEditForm({ ...editForm, earnings_breakdown: next });
+                    }} placeholder="Amount" style={{ width: 140 }} />
+                    <button type="button" className="btn btn-sm" onClick={() => {
+                      const next = editForm.earnings_breakdown.filter((_, idx) => idx !== i);
+                      setEditForm({ ...editForm, earnings_breakdown: next });
+                    }}>✕</button>
+                  </div>
+                ))}
+                <button type="button" className="btn" onClick={() => setEditForm({ ...editForm, earnings_breakdown: [...(editForm.earnings_breakdown || []), { name: '', amount: 0 }] })}>+ Add Earning</button>
+              </div>
+
+              <div style={{ marginTop: 16, padding: '16px', borderTop: '1px solid var(--border)' }}>
+                <div style={{ fontWeight: 700, marginBottom: 10 }}>Deductions Breakdown</div>
+                {(editForm.deductions_breakdown || []).map((row, i) => (
+                  <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'center' }}>
+                    <input className="form-input" value={row.name || ''} onChange={e => {
+                      const next = [...editForm.deductions_breakdown];
+                      next[i] = { ...next[i], name: e.target.value };
+                      setEditForm({ ...editForm, deductions_breakdown: next });
+                    }} placeholder="Name" style={{ flex: 1 }} />
+                    <input className="form-input" type="number" value={row.amount ?? ''} onChange={e => {
+                      const next = [...editForm.deductions_breakdown];
+                      next[i] = { ...next[i], amount: Number(e.target.value) || 0 };
+                      setEditForm({ ...editForm, deductions_breakdown: next });
+                    }} placeholder="Amount" style={{ width: 140 }} />
+                    <button type="button" className="btn btn-sm" onClick={() => {
+                      const next = editForm.deductions_breakdown.filter((_, idx) => idx !== i);
+                      setEditForm({ ...editForm, deductions_breakdown: next });
+                    }}>✕</button>
+                  </div>
+                ))}
+                <button type="button" className="btn" onClick={() => setEditForm({ ...editForm, deductions_breakdown: [...(editForm.deductions_breakdown || []), { name: '', amount: 0 }] })}>+ Add Deduction</button>
               </div>
             </div>
             <div className="modal-footer">
