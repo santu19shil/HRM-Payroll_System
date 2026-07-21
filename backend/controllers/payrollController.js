@@ -13,7 +13,7 @@ const MONTHS = ['', 'January', 'February', 'March', 'April', 'May', 'June', 'Jul
  */
 async function fetchSettings(connection) {
   const [rows] = await connection.query(
-    "SELECT setting_key, setting_value FROM settings WHERE setting_group = 'Company'"
+    "SELECT setting_key, setting_value FROM settings"
   );
   const obj = {};
   rows.forEach(r => { obj[r.setting_key] = r.setting_value; });
@@ -178,7 +178,7 @@ const downloadPayslip = async (req, res) => {
                  e.first_name, e.last_name, e.employee_id, e.designation_id, e.department_id,
                  d.name as department_name, des.title as designation_title,
                  e.bank_name, e.bank_account_number, e.bank_account_name, e.bank_ifsc, e.bank_branch,
-                 e.pan_number, e.pf_number, e.uan_number, e.esi_number
+                  e.pan_number, e.pf_number, e.uan_number
           FROM payroll_items pi
           JOIN payroll_runs pr ON pi.payroll_run_id = pr.id
           JOIN employees e ON pi.employee_id = e.id
@@ -198,7 +198,7 @@ const downloadPayslip = async (req, res) => {
                  e.first_name, e.last_name, e.employee_id, e.designation_id, e.department_id,
                  d.name as department_name, des.title as designation_title,
                  e.bank_name, e.bank_account_number, e.bank_account_name, e.bank_ifsc, e.bank_branch,
-                 e.pan_number, e.pf_number, e.uan_number, e.esi_number
+                  e.pan_number, e.pf_number, e.uan_number
           FROM payroll_items pi
           JOIN payroll_runs pr ON pi.payroll_run_id = pr.id
           JOIN employees e ON pi.employee_id = e.id
@@ -246,8 +246,7 @@ const downloadPayslip = async (req, res) => {
         bank_branch: item.bank_branch,
         pan_number: item.pan_number,
         pf_number: item.pf_number,
-        uan_number: item.uan_number,
-        esi_number: item.esi_number
+        uan_number: item.uan_number
       },
       earnings: earningsBreakdown,
       deductions: deductionsBreakdown,
@@ -303,7 +302,7 @@ const getAllPayslips = async (req, res) => {
               e.employee_id as employee_number,
               d.name as department_name, des.title as designation_title,
               e.bank_name, e.bank_account_number as bank_account_no, e.bank_account_name, e.bank_ifsc, e.bank_branch,
-              e.pan_number, e.pf_number, e.uan_number as pf_uan, e.esi_number
+              e.pan_number, e.pf_number, e.uan_number as pf_uan
        FROM payroll_items pi
        JOIN payroll_runs pr ON pi.payroll_run_id = pr.id
        JOIN employees e ON pi.employee_id = e.id

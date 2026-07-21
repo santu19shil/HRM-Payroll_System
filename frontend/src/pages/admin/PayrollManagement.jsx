@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { payrollAPI, employeeAPI } from '../../services/api';
+import { payrollAPI, employeeAPI, settingsAPI } from '../../services/api';
 import toast from 'react-hot-toast';
 import { formatPayrollAmount, getPayrollStatusBadge } from '../../utils/payrollHelpers';
 import ActionMenu from '../../components/ActionMenu';
@@ -33,6 +33,7 @@ export default function PayrollManagement() {
   const [savingPayslip, setSavingPayslip] = useState(false);
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [tab, setTab] = useState('payslips');
+  const [companySettings, setCompanySettings] = useState({ company_name: '', company_address: '', company_logo: '' });
 
   useEffect(() => {
     loadData();
@@ -41,6 +42,28 @@ export default function PayrollManagement() {
     return () => {
       window.removeEventListener('focus', handleFocus);
     };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadSettings() {
+      try {
+        const res = await settingsAPI.get();
+        const data = res.data.data || {};
+        const settings = data.settings || data;
+        if (!cancelled) {
+          setCompanySettings({
+            company_name: settings.company_name || '',
+            company_address: settings.company_address || '',
+            company_logo: settings.company_logo || ''
+          });
+        }
+      } catch (e) {
+        // ignore
+      }
+    }
+    loadSettings();
+    return () => { cancelled = true; };
   }, []);
 
   const loadData = async () => {
@@ -492,12 +515,13 @@ export default function PayrollManagement() {
               {/* Professional Payslip Layout */}
               <div style={{ padding: '28px 32px 20px', borderBottom: '3px solid var(--primary)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
-                  <div>
-                    <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--primary)', letterSpacing: '-0.5px' }}>TELERAD TECH PRIVATE LIMITED</div>
-                    <div style={{ fontSize: 12, color: '#64748b', marginTop: 4, lineHeight: 1.5 }}>
-                      Plot No 7G, Council Khata, Opp Graphite india,<br />
-                      Vishveshwariah Industrial Area, Whitefield, Bangalore-560048,<br />
-                      Bangalore - 560048, Karnataka, India
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                    {companySettings.company_logo && (
+                      <img src={companySettings.company_logo} alt="Company logo" style={{ width: 56, height: 56, objectFit: 'contain', borderRadius: 6, border: '1px solid #e2e8f0', padding: 4, background: '#fff' }} />
+                    )}
+                    <div>
+                      <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--primary)', letterSpacing: '-0.5px' }}>{companySettings.company_name || 'Enterprise HRMS Pvt. Ltd.'}</div>
+                      <div style={{ fontSize: 12, color: '#64748b', marginTop: 4, lineHeight: 1.5, whiteSpace: 'pre-line' }}>{companySettings.company_address || ''}</div>
                     </div>
                   </div>
                   <div style={{ textAlign: 'right' }}>
@@ -508,20 +532,20 @@ export default function PayrollManagement() {
                   </div>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 6, fontSize: 13, marginTop: 12, padding: '12px 0', borderTop: '1px solid #e2e8f0', borderBottom: '1px solid #e2e8f0' }}>
-                  {[
-                    { label: 'Name', value: viewPayslip.employee_name || 'N/A' },
-                    { label: 'Employee No', value: viewPayslip.employee_number || viewPayslip.employee_id || '-' },
-                    { label: 'Designation', value: viewPayslip.designation || viewPayslip.employee_designation || '-' },
-                    { label: 'Department', value: viewPayslip.department || viewPayslip.employee_department || '-' },
-                    { label: 'Bank Name', value: viewPayslip.bank_name || '-' },
-                    { label: 'Bank Account No', value: viewPayslip.bank_account_no || '-' },
-                    { label: 'PAN Number', value: viewPayslip.pan_number || '-' },
-                    { label: 'PF No', value: viewPayslip.pf_number || '-' },
-                    { label: 'PF UAN', value: viewPayslip.pf_uan || '-' },
-                    { label: 'ESI Number', value: viewPayslip.esi_number || '-' },
-                    { label: 'Effective Work Days', value: viewPayslip.working_days || '-' },
-                    { label: 'LOP', value: viewPayslip.lop || '0' },
-                  ].map((f, i) => (
+                    {[
+                      { label: 'Name', value: viewPayslip.employee_name || 'N/A' },
+                      { label: 'Employee No', value: viewPayslip.employee_number || viewPayslip.employee_id || '-' },
+                      { label: 'Designation', value: viewPayslip.designation_title || viewPayslip.designation || '-' },
+                      { label: 'Department', value: viewPayslip.department_name || viewPayslip.department || '-' },
+                      { label: 'Bank Name', value: viewPayslip.bank_name || '-' },
+                      { label: 'Bank Account No', value: viewPayslip.bank_account_no || '-' },
+                      { label: 'PAN Number', value: viewPayslip.pan_number || '-' },
+                      { label: 'PF No', value: viewPayslip.pf_number || '-' },
+                      { label: 'PF UAN', value: viewPayslip.pf_uan || '-' },
+                      { label: 'ESI Number', value: viewPayslip.esi_number || '-' },
+                      { label: 'Effective Work Days', value: viewPayslip.working_days || '-' },
+                      { label: 'LOP', value: viewPayslip.lop || '0' },
+                    ].map((f, i) => (
                     <div key={i}>
                       <span style={{ color: '#64748b', fontSize: 11 }}>{f.label}</span>
                       <div style={{ fontWeight: 600, color: '#1e293b' }}>{f.value}</div>
